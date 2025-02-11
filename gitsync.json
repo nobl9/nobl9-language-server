@@ -1,0 +1,121 @@
+{
+  "root": {
+    "name": "template",
+    "url": "https://github.com/nobl9/go-repo-template.git"
+  },
+  "ignore": [
+    {
+      "fileName": "golangci linter config",
+      "regex": [
+        "^\\s\\+local-prefixes:"
+      ]
+    },
+    {
+      "repositoryName": "terraform provider",
+      "fileName": "golangci linter config",
+      "hunks": [
+        {
+          "changes": [
+            "-    # Resource descriptions or deprecated notices.",
+            "-    - linters:",
+            "-        - lll",
+            "-      source: \".*(Description|Deprecated): .*\""
+          ]
+        }
+      ]
+    },
+    {
+      "fileName": "renovate config",
+      "regex": [
+        "\"ignoreDeps\": \\[\"github.com/nobl9/nobl9-go\"\\]"
+      ]
+    },
+    {
+      "repositoryName": "govy",
+      "fileName": "golangci linter config",
+      "regex": [
+        "^\\s\\+- gochecknoinits$",
+        "^\\s\\+min-complexity:"
+      ]
+    },
+    {
+      "repositoryName": "govy",
+      "fileName": "markdown linter config",
+      "regex": [
+        "^\\s\\+code_blocks:",
+        "^\\s\\+code_block_line_length:"
+      ]
+    },
+    {
+      "repositoryName": "govy",
+      "fileName": "renovate config",
+      "hunks": [
+        {
+          "changes": [
+            "+  // Custom version extraction from Makefile.",
+            "+  \"regexManagers\": [",
+            "+    {",
+            "+      \"fileMatch\": [\"^Makefile$\"],",
+            "+      \"matchStrings\": [",
+            "+        \".*renovate datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\\\n.*?_VERSION\\\\s?:=\\\\s?(?<currentValue>.*)\\\\s\"",
+            "+      ]",
+            "+    }",
+            "+  ],"
+          ]
+        }
+      ]
+    }
+  ],
+  "syncRepositories": [
+    {
+      "name": "sdk",
+      "url": "https://github.com/nobl9/nobl9-go.git"
+    },
+    {
+      "name": "sloctl",
+      "url": "https://github.com/nobl9/sloctl.git"
+    },
+    {
+      "name": "terraform provider",
+      "url": "https://github.com/nobl9/terraform-provider-nobl9.git"
+    },
+    {
+      "name": "govy",
+      "url": "https://github.com/nobl9/govy.git"
+    }
+  ],
+  "syncFiles": [
+    {
+      "name": "golangci linter config",
+      "path": ".golangci.yml"
+    },
+    {
+      "name": "markdown linter config",
+      "path": ".markdownlint.yaml"
+    },
+    {
+      "name": "renovate config",
+      "path": ".github/renovate.json5"
+    },
+    {
+      "name": "release drafter config",
+      "path": ".github/release-drafter.yml"
+    },
+    {
+      "name": "release notes script",
+      "path": ".github/scripts/release-notes.sh"
+    },
+    {
+      "name": "issue templates config",
+      "path": ".github/ISSUE_TEMPLATE/config.yml"
+    },
+    {
+      "name": "pull request check workflow",
+      "path": ".github/workflows/pr-title.yml"
+    },
+    {
+      "name": "release drafter workflow",
+      "path": ".github/workflows/release-drafter.yml"
+    }
+  ]
+}
