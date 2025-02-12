@@ -1,0 +1,31 @@
+---
+apiVersion: n9/v1alpha
+kind: Agent
+metadata:
+  name: datadog
+  project: datadog
+spec:
+  description: my test is here
+  datadog:
+    site: com
+  # sourceOf:
+  #   - Metrics
+  #   - Services
+  # Only valid for Datadog if TimeMachine is enabled
+  historicalDataRetrieval:
+    maxDuration:
+      value: 30
+      unit: Day # allowed values: Minute, Hour, Day
+    defaultDuration:
+      value: 7
+      unit:  # allowed values: Minute, Hour, Day
+# ---
+# apiVersion: n9/v1alpha
+# kind: Service
+# metadata:
+#   displayName: Datadog Nobl9
+#   name: datadog-n9
+#   project: datadog
+#   labels:
+#     team:
+#       - green

@@ -1,0 +1,44 @@
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-calendar-occurrences-threshold
+  name: datadog-calendar-occurrences-threshold
+  project: default
+spec:
+  composite:
+    target: 0.2
+    burnRateCondition:
+      value: 10
+      op: gt
+  budgetingMethod: Occurrences
+  description: this
+  indicator:
+    metricSource:
+      name: datadog
+  service: datadog-n9
+  objectives:
+    - target: 0.8
+      op: lte
+      rawMetric:
+        query:
+          datadog:
+            query: avg:trace.http.request.duration{*}
+      displayName: awesome
+      value: 0.04
+      name: objective-1
+    - target: 0.99
+      op: lte
+      rawMetric:
+        query:
+          datadog:
+            query: avg:trace.http.request.duration{*}
+      displayName: so-so
+      value: 0.1
+      name: objective-2
+  timeWindows:
+    - calendar:
+        startTime: "2020-11-14 12:30:00"
+        timeZone: Etc/UTC
+      count: 1
+      isRolling: false
+      unit: Day

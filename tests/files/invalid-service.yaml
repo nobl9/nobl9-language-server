@@ -1,0 +1,6 @@
+apiVersion: n9/v1alpha
+kind: Service
+metadata:
+  name: invalid service
+spec:
+  description: An invalid service

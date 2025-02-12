@@ -1,0 +1,89 @@
+---
+apiVersion: n9/v1alpha
+kind: Agent
+metadata:
+  name: this
+  project: datadog-direct-test
+spec:
+  description: my test is here
+  datadog:
+    site: com
+  # sourceOf:
+  #   - Metrics
+  #   - Services
+  # Only valid for Datadog if TimeMachine is enabled
+  historicalDataRetrieval:
+    maxDuration:
+      value: 30
+      unit: Day # allowed values: Minute, Hour, Day
+    defaultDuration:
+      value: 7
+      unit: Day # allowed values: Minute, Hour, Day
+---
+- apiVersion: n9/v1alpha
+  kind: Service
+  metadata:
+    displayName: Datadog Nobl9
+    name: datadog-n9
+    project: datadog
+    labels:
+      team:
+        - green
+  spec:
+    description: ""
+- apiVersion: n9/v1alpha
+  kind: Service
+  metadata:
+    displayName: NewRelic Nobl9
+    name: newrelic-n9
+    project: datadog
+    labels:
+      team:
+        - orange
+  spec:
+    description: ""
+---
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-calendar-occurrences-threshold
+  name: datadog-calendar-occurrences-threshold
+  project: datadog
+spec:
+  composite:
+    target: 0.2
+    burnRateCondition:
+      value: 10
+      op: gt
+  budgetingMethod: Occurrences
+  description: ""
+  indicator:
+    metricSource:
+      name: datadog
+  service: datadog-n9
+  objectives:
+    - target: 0.8
+      op: lte
+      rawMetric:
+        query:
+          datadog:
+            query: avg:trace.http.request.duration{*}
+      displayName: awesome
+      value: 0.04
+      name: objective-1
+    - target: 0.99
+      op: lte
+      rawMetric:
+        query:
+          datadog:
+            query: avg:trace.http.request.duration{*}
+      displayName: so-so
+      value: 0.1
+      name: objective-2
+  timeWindows:
+    - calendar:
+        startTime: "2020-11-14 12:30:00"
+        timeZone: Etc/UTC
+      count: 1
+      isRolling: false
+      unit: Day

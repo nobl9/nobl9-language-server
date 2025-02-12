@@ -1,0 +1,13 @@
+
+---
+foo: bar
+
+---
+- foo: bar
+-
+---
+- bar: baz
+
+---
+
+foo: bar

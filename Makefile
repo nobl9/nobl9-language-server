@@ -3,7 +3,7 @@ MAKEFLAGS += --silent --no-print-directory
 
 BIN_DIR := ./bin
 SCRIPTS_DIR := ./scripts
-APP_NAME := your-module-name
+APP_NAME := nobl9-language-server
 LDFLAGS += -s -w
 
 # renovate datasource=github-releases depName=securego/gosec
@@ -36,14 +36,19 @@ define _print_check_step
 endef
 
 .PHONY: build
-## Build your-module-name binary.
+## Build nobl9-language-server binary.
 build:
-	go build -ldflags="$(LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME) ./cmd
+	go build -ldflags="$(LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME) ./cmd/nobl9-language-server/
 
 .PHONY: test
 ## Run all unit tests.
 test:
 	go test -race -cover ./...
+
+.PHONY: nvim-open
+## Open Neovim with the LSP server.
+nvim-open: install/binary
+	nvim --clean -u ./neovim-config/init.lua service.yaml
 
 .PHONY: check check/vet check/lint check/gosec check/spell check/trailing check/markdown check/format check/generate check/vulns
 ## Run all checks.
@@ -118,7 +123,7 @@ format/go:
 	echo "Formatting Go files..."
 	$(call _ensure_installed,binary,goimports)
 	gofmt -l -w -s .
-	$(BIN_DIR)/goimports -local=github.com/nobl9/your-module-name -w .
+	$(BIN_DIR)/goimports -local=github.com/nobl9/nobl9-language-server -w .
 
 ## Format cspell config file.
 format/cspell:
@@ -126,9 +131,14 @@ format/cspell:
 	$(call _ensure_installed,yarn,yaml)
 	yarn --silent format-cspell-config
 
-.PHONY: install install/yarn install/golangci-lint install/gosec install/govulncheck install/goimports
+.PHONY: install install/binary install/yarn install/golangci-lint install/gosec install/govulncheck install/goimports
 ## Install all dev dependencies.
-install: install/yarn install/golangci-lint install/gosec install/govulncheck install/goimports
+install: install/binary install/yarn install/golangci-lint install/gosec install/govulncheck install/goimports
+
+## Install nobl9-language-server binary.
+install/binary:
+	echo "Installing LSP binary..."
+	go install -gcflags="all=-N -l" -ldflags="$(LDFLAGS)" ./cmd/nobl9-language-server/
 
 ## Install JS dependencies with yarn.
 install/yarn:

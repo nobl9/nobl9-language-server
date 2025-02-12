@@ -27,10 +27,12 @@
     "cspell.json",
     "CODEOWNERS",
     "bin/**",
-    "gitsync.json"
+    "gitsync.json",
+    "neovim-config"
   ],
   "words": [
     "endef",
+    "gcflags",
     "gobin",
     "gofmt",
     "goimports",
@@ -43,6 +45,7 @@
     "sloctl",
     "tpng",
     "vuln",
-    "vulns"
+    "vulns",
+    "wrapf"
   ]
 }

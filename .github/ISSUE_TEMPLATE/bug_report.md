@@ -18,7 +18,7 @@ A clear and concise description of what you expected to happen.
 
 **System details (please complete the following information)**
  - OS (with version): [e.g. OS X 14.2.1, Ubuntu 22.04]
- - your-module-name Version [e.g. v1.0.2]
+ - nobl9-language-server Version [e.g. v1.0.2]
 
 **Additional context**
 Add any other context about the problem here.

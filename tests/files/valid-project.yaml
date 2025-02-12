@@ -1,0 +1,6 @@
+apiVersion: n9/v1alpha
+kind: Project
+metadata:
+  name: valid-project
+spec:
+  description: A valid project

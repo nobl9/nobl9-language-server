@@ -1,0 +1,301 @@
+---
+apiVersion: n9/v1alpha
+kind: Agent
+metadata:
+  name: datadog
+  project: datadog
+spec:
+  datadog:
+    site: com
+  historicalDataRetrieval:
+    maxDuration:
+      value: 30
+      unit: Day
+    defaultDuration:
+      value: 7
+      unit: Day
+---
+apiVersion: n9/v1alpha
+kind: Service
+metadata:
+  displayName: Datadog Nobl9
+  name: datadog-n9
+  project: datadog
+  labels:
+    team:
+      - green
+spec:
+  description: |
+    Datadog service for Nobl9
+    Multi-line description
+---
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-calendar-occurrences-threshold
+  name: datadog-calendar-occurrences-threshold
+  project: datadog
+spec:
+  budgetingMethod: Occurrences
+  description: ""
+  indicator:
+    metricSource:
+      name: datadog
+  service: datadog-n9
+  objectives:
+    - target: 0.8
+      op: lte
+      rawMetric:
+        query:
+          datadog:
+            query: avg:trace.http.request.duration{*}
+      displayName: awesome
+      value: 0.04
+      name: objective-1
+    - target: 0.99
+      op: lte
+      rawMetric:
+        query:
+          datadog:
+            query: avg:trace.http.request.duration{*}
+      displayName: so-so
+      value: 0.1
+      name: objective-2
+  timeWindows:
+    - calendar:
+        startTime: "2020-11-14 12:30:00"
+        timeZone: Etc/UTC
+      count: 1
+      isRolling: false
+      unit: Day
+---
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-calendar-timeslices-threshold
+  name: datadog-calendar-timeslices-threshold
+  project: datadog
+spec:
+  budgetingMethod: Timeslices
+  description: ""
+  indicator:
+    metricSource:
+      name: datadog
+  service: datadog-n9
+  objectives:
+    - target: 0.7
+      op: lte
+      rawMetric:
+        query:
+          datadog:
+            query: avg:trace.http.request.duration.by_http_status{http.status_code:200}
+      displayName: doable
+      timeSliceTarget: 0.7
+      value: 0.2
+      name: objective-1
+  timeWindows:
+    - calendar:
+        startTime: "2020-11-14 12:30:00"
+        timeZone: Etc/UTC
+      count: 1
+      isRolling: false
+      unit: Day
+---
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-rolling-occurrences-threshold
+  name: datadog-rolling-occurrences-threshold
+  project: datadog
+spec:
+  budgetingMethod: Occurrences
+  description: ""
+  indicator:
+    metricSource:
+      name: datadog
+  service: datadog-n9
+  objectives:
+    - target: 0.95
+      op: lte
+      rawMetric:
+        query:
+          datadog:
+            query: avg:trace.postgres.query.duration{*}
+      displayName: really-fast
+      value: 0.004
+      name: objective-1
+  timeWindows:
+    - count: 1
+      isRolling: true
+      unit: Hour
+---
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-rolling-timeslices-threshold
+  name: datadog-rolling-timeslices-threshold
+  project: datadog
+spec:
+  budgetingMethod: Timeslices
+  description: ""
+  indicator:
+    metricSource:
+      name: datadog
+  service: datadog-n9
+  objectives:
+    - target: 0.6
+      op: lte
+      rawMetric:
+        query:
+          datadog:
+            query: avg:trace.postgres.query.duration{*}
+      displayName: rather-bad
+      timeSliceTarget: 0.6
+      value: 0.003
+      name: objective-1
+    - target: 0.99
+      op: lte
+      rawMetric:
+        query:
+          datadog:
+            query: avg:trace.postgres.query.duration{*}
+      displayName: stretched
+      timeSliceTarget: 0.99
+      value: 0.004
+      name: objective-2
+  timeWindows:
+    - count: 1
+      isRolling: true
+      unit: Hour
+---
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-calendar-occurrences-ratio
+  name: datadog-calendar-occurrences-ratio
+  project: datadog
+spec:
+  budgetingMethod: Occurrences
+  description: ""
+  indicator:
+    metricSource:
+      name: datadog
+  service: datadog-n9
+  objectives:
+    - target: 0.9
+      countMetrics:
+        good:
+          datadog:
+            query: sum:trace.http.request.hits{http.status_code:200}.as_count()
+        incremental: false
+        total:
+          datadog:
+            query: sum:trace.http.request.hits{*}.as_count()
+      displayName: ""
+      value: 1
+      name: objective-1
+  timeWindows:
+    - calendar:
+        startTime: "2020-11-14 12:30:00"
+        timeZone: Etc/UTC
+      count: 1
+      isRolling: false
+      unit: Day
+---
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-rolling-occurrences-ratio
+  name: datadog-rolling-occurrences-ratio
+  project: datadog
+spec:
+  budgetingMethod: Occurrences
+  description: ""
+  indicator:
+    metricSource:
+      name: datadog
+  service: datadog-n9
+  objectives:
+    - target: 0.7
+      countMetrics:
+        good:
+          datadog:
+            query: sum:trace.http.request.hits.by_http_status{http.status_class:2xx}.as_count()
+        incremental: false
+        total:
+          datadog:
+            query: sum:trace.http.request.hits.by_http_status{*}.as_count()
+      displayName: ""
+      value: 1
+      name: objective-1
+  timeWindows:
+    - count: 1
+      isRolling: true
+      unit: Hour
+---
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-calendar-timeslices-ratio
+  name: datadog-calendar-timeslices-ratio
+  project: datadog
+spec:
+  budgetingMethod: Timeslices
+  description: ""
+  indicator:
+    metricSource:
+      name: datadog
+  service: datadog-n9
+  objectives:
+    - target: 0.5
+      countMetrics:
+        good:
+          datadog:
+            query: sum:trace.http.request.hits.by_http_status{http.status_code:200}.as_count()
+        incremental: false
+        total:
+          datadog:
+            query: sum:trace.http.request.hits.by_http_status{*}.as_count()
+      displayName: ""
+      timeSliceTarget: 0.5
+      value: 1
+      name: objective-1
+  timeWindows:
+    - calendar:
+        startTime: "2020-11-14 12:30:00"
+        timeZone: Etc/UTC
+      count: 1
+      isRolling: false
+      unit: Day
+---
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-rolling-timeslices-ratio
+  name: datadog-rolling-timeslices-ratio
+  project: datadog
+spec:
+  budgetingMethod: Timeslices
+  description: ""
+  indicator:
+    metricSource:
+      name: datadog
+  service: datadog-n9
+  objectives:
+    - target: 0.5
+      countMetrics:
+        good:
+          datadog:
+            query: sum:trace.http.request.hits.by_http_status{http.status_code:200}.as_count()
+        incremental: false
+        total:
+          datadog:
+            query: sum:trace.http.request.hits.by_http_status{*}.as_count()
+      displayName: ""
+      timeSliceTarget: 0.5
+      value: 1
+      name: objective-1
+  timeWindows:
+    - count: 1
+      isRolling: true
+      unit: Hour

@@ -30,7 +30,7 @@ linters-settings:
   goimports:
     # Put imports beginning with prefix after 3rd-party packages;
     # it's a comma-separated list of prefixes.
-    local-prefixes: github.com/nobl9/your-module-name
+    local-prefixes: github.com/nobl9/nobl9-language-server
   govet:
     # False positives and reporting on error shadowing (which is intended).
     # Quoting Rob Pike:
@@ -46,6 +46,8 @@ linters-settings:
       - opinionated
     disabled-checks:
       - singleCaseSwitch
+      - unnamedResult
+      - ifElseChain
   exhaustive:
     # In switch statement treat label default: as being exhaustive.
     default-signifies-exhaustive: true

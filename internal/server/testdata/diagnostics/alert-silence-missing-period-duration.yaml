@@ -1,0 +1,12 @@
+apiVersion: n9/v1alpha
+kind: AlertSilence
+metadata:
+  name: alert-silence-name
+  project: default
+spec:
+  description: AlertSilence description
+  slo: slo-name
+  period:
+    startTime: 2025-01-01T12:00:00+02:00
+  alertPolicy:
+    name: alert-policy-name
