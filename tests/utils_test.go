@@ -19,7 +19,14 @@ import (
 )
 
 func newServerCommand(t *testing.T, ctx context.Context) *serverCommand {
-	cmd := exec.CommandContext(ctx, "go", "run", "../main.go", "-logLevel=TRACE")
+	root := testutils.FindModuleRoot()
+	cmd := exec.CommandContext(
+		ctx,
+		"go",
+		"run",
+		filepath.Join(root, "cmd", "nobl9-language-server", "main.go"),
+		"-logLevel=TRACE",
+	)
 
 	inputPipe, err := cmd.StdinPipe()
 	require.NoError(t, err)
