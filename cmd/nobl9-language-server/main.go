@@ -48,7 +48,7 @@ func bootstrap() (*jsonrpc2.Conn, error) {
 
 func parseConfig() logging.Config {
 	var c logging.Config
-	flag.StringVar(&c.LogFile, "logFile", "nobl9-language-server.log", "Log messages to the provided file")
+	flag.StringVar(&c.LogFile, "logFilePath", "nobl9-language-server.log", "Log messages to the provided file")
 	flag.TextVar(&c.LogLevel, "logLevel", logging.DefaultLevel(), "Log messages at the provided level")
 	flag.Parse()
 	return c
