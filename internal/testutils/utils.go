@@ -1,9 +1,15 @@
 package testutils
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"sync"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/nobl9/nobl9-language-server/internal/files"
 )
 
 var (
@@ -32,4 +38,20 @@ func FindModuleRoot() string {
 		}
 	})
 	return moduleRoot
+}
+
+// RegisterTestFiles registers all files from the specified directory in the provided [files.FS].
+func RegisterTestFiles(t *testing.T, fs *files.FS, testFileDir string) {
+	t.Helper()
+
+	entries, err := os.ReadDir(testFileDir)
+	require.NoError(t, err)
+	for _, entry := range entries {
+		require.False(t, entry.IsDir())
+		path := filepath.Join(testFileDir, entry.Name())
+		data, err := os.ReadFile(path) // #nosec G304
+		require.NoError(t, err)
+		err = fs.OpenFile(context.Background(), path, string(data), 1)
+		require.NoError(t, err)
+	}
 }

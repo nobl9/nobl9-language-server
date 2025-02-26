@@ -32,6 +32,7 @@
   ],
   "words": [
     "endef",
+    "fname",
     "gcflags",
     "gobin",
     "gofmt",
@@ -40,7 +41,9 @@
     "gosec",
     "govulncheck",
     "ldflags",
+    "lspconfig",
     "nobl",
+    "objectsrepo",
     "plantuml",
     "sloctl",
     "tpng",

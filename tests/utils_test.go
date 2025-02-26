@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/sourcegraph/jsonrpc2"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nobl9/nobl9-language-server/internal/testutils"
@@ -34,18 +36,23 @@ func newServerCommand(t *testing.T, ctx context.Context) *serverCommand {
 	outputPipe, err := cmd.StdoutPipe()
 	require.NoError(t, err)
 
+	stderr := new(bytes.Buffer)
+	cmd.Stderr = stderr
+
 	return &serverCommand{
-		IN:  inputPipe,
-		OUT: outputPipe,
-		cmd: cmd,
+		IN:     inputPipe,
+		OUT:    outputPipe,
+		cmd:    cmd,
+		stderr: stderr,
 	}
 }
 
 type serverCommand struct {
-	IN  io.Writer
-	OUT io.Reader
+	IN  io.WriteCloser
+	OUT io.ReadCloser
 
-	cmd *exec.Cmd
+	cmd    *exec.Cmd
+	stderr io.Reader
 }
 
 func (s *serverCommand) Start(t *testing.T) {
@@ -53,8 +60,9 @@ func (s *serverCommand) Start(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func (s *serverCommand) Stop() {
-	_ = s.cmd.Wait()
+func (s *serverCommand) Stop(t *testing.T) {
+	_, err := s.cmd.Process.Wait()
+	assert.NoError(t, err)
 }
 
 func newJSONRPCClient(writer io.Writer, reader io.Reader) *jsonRPCClient {

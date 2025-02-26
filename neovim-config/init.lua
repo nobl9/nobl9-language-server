@@ -1,13 +1,12 @@
 vim.g.mapleader = " "
 
-vim.api.nvim_exec(
-  [[
-let g:UltiSnipsExpandTrigger='<Tab>'
-let g:UltiSnipsJumpForwardTrigger='<c-j>'
-let g:UltiSnipsJumpBackwardTrigger='<c-k>'
-]],
-  false
-)
+vim.keymap.set({ "i", "s" }, "<Tab>", function()
+  if vim.snippet.active({ direction = 1 }) then
+    return "<cmd>lua vim.snippet.jump(1)<cr>"
+  else
+    return "<Tab>"
+  end
+end, { expr = true })
 
 local lazypath = vim.loop.cwd() .. "neovim-config/.lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
@@ -28,14 +27,13 @@ require("lazy").setup({
     "hrsh7th/nvim-cmp",
     dependencies = {
       "hrsh7th/cmp-nvim-lsp",
-      { "Sirver/ultisnips", event = { "InsertEnter" } },
     },
     config = function()
       local cmp = require("cmp")
       cmp.setup({
         sources = {
           { name = "nvim_lsp" },
-          { name = "ultisnips" },
+          { name = "snippets" },
         },
         mapping = cmp.mapping.preset.insert({
           ["<C-b>"] = cmp.mapping.scroll_docs(-4),
@@ -46,8 +44,7 @@ require("lazy").setup({
         }),
         snippet = {
           expand = function(args)
-            vim.fn["UltiSnips#Anon"](args.body) -- For `ultisnips` users.
-            -- vim.snippet.expand(args.body) -- For native neovim snippets (Neovim v0.10+)
+            vim.snippet.expand(args.body) -- For native neovim snippets (Neovim v0.10+)
           end,
         },
       })
@@ -72,9 +69,9 @@ local function keymap(bufnr, _)
   nmap("K", vim.lsp.buf.hover, "Hover Documentation")
 end
 
-configs.nobl9-language-server = {
+configs.nobl9_language_server = {
   default_config = {
-    cmd = { "nobl9-language-server", "-logLevel=TRACE" },
+    cmd = { "nobl9-language-server", "-logLevel=TRACE", "-logFilePath=this.log" },
     filetypes = { "yaml" },
     root_dir = function(fname)
       return lsp.util.find_git_ancestor(fname)
@@ -84,7 +81,7 @@ configs.nobl9-language-server = {
 }
 
 local capabilities = require("cmp_nvim_lsp").default_capabilities()
-lsp.nobl9-language-server.setup({
+lsp.nobl9_language_server.setup({
   on_attach = function(_, bufnr)
     keymap(bufnr)
   end,

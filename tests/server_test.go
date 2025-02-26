@@ -3,8 +3,10 @@ package tests
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/nobl9/nobl9-go/manifest"
 	"github.com/sourcegraph/jsonrpc2"
 
 	"github.com/nobl9/nobl9-language-server/internal/messages"
@@ -52,7 +54,7 @@ func TestLSP(t *testing.T) {
 
 	t.Cleanup(func() {
 		cancel()
-		server.Stop()
+		server.Stop(t)
 	})
 
 	tests := []TestCase{
@@ -260,7 +262,7 @@ func TestLSP(t *testing.T) {
 								Message: "string must match regular expression: " +
 									"'^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$' (e.g. 'my-name', '123-abc')",
 								Severity: messages.DiagnosticSeverityError,
-								Source:   ptr("nobl9-go"),
+								Source:   ptr("nobl9-language-server"),
 								Range: messages.Range{
 									Start: messages.Position{
 										Line:      3,
@@ -275,7 +277,7 @@ func TestLSP(t *testing.T) {
 							{
 								Message:  "metadata.project: property is required but was empty",
 								Severity: messages.DiagnosticSeverityError,
-								Source:   ptr("nobl9-go"),
+								Source:   ptr("nobl9-language-server"),
 								Range: messages.Range{
 									Start: messages.Position{
 										Line:      2,
@@ -317,16 +319,31 @@ func TestLSP(t *testing.T) {
 						Version: 1,
 						Diagnostics: []messages.Diagnostic{
 							{
-								Message:  "object cannot be parsed",
+								Message:  "property is required but was empty",
 								Severity: messages.DiagnosticSeverityError,
 								Source:   ptr("nobl9-language-server"),
 								Range: messages.Range{
 									Start: messages.Position{
-										Line:      0,
+										Line:      7,
+										Character: 2,
+									},
+									End: messages.Position{
+										Line:      7,
+										Character: 17,
+									},
+								},
+							},
+							{
+								Message:  fmt.Sprintf("S is not a valid Kind, try [%s]", strings.Join(manifest.KindNames(), ", ")),
+								Severity: messages.DiagnosticSeverityError,
+								Source:   ptr("nobl9-language-server"),
+								Range: messages.Range{
+									Start: messages.Position{
+										Line:      32,
 										Character: 0,
 									},
 									End: messages.Position{
-										Line:      0,
+										Line:      32,
 										Character: 0,
 									},
 								},
@@ -337,7 +354,7 @@ func TestLSP(t *testing.T) {
 			},
 		},
 		{
-			Scenario: "complete root path - unknown kind",
+			Scenario: "complete kind",
 			Request: TestCaseRequest{
 				ID:     11,
 				Method: messages.CompletionMethod,
@@ -347,8 +364,8 @@ func TestLSP(t *testing.T) {
 							URI: getTestFileURI("completion.yaml"),
 						},
 						Position: messages.Position{
-							Line:      1,
-							Character: 0,
+							Line:      33,
+							Character: 6,
 						},
 					},
 					CompletionContext: messages.CompletionContext{
@@ -358,22 +375,48 @@ func TestLSP(t *testing.T) {
 			},
 			Response: TestCaseResponse{
 				ID: 11,
+				Result: func() []messages.CompletionItem {
+					var items []messages.CompletionItem
+					for _, kind := range manifest.KindNames() {
+						items = append(items, messages.CompletionItem{
+							Label: kind,
+							Kind:  messages.ValueCompletion,
+						})
+					}
+					return items
+				}(),
+			},
+		},
+		{
+			Scenario: "complete SLO budgeting method",
+			Request: TestCaseRequest{
+				ID:     12,
+				Method: messages.CompletionMethod,
+				Params: messages.CompletionParams{
+					TextDocumentPositionParams: messages.TextDocumentPositionParams{
+						TextDocument: messages.TextDocumentIdentifier{
+							URI: getTestFileURI("completion.yaml"),
+						},
+						Position: messages.Position{
+							Line:      7,
+							Character: 19,
+						},
+					},
+					CompletionContext: messages.CompletionContext{
+						TriggerKind: messages.TriggerKindInvoked,
+					},
+				},
+			},
+			Response: TestCaseResponse{
+				ID: 12,
 				Result: []messages.CompletionItem{
 					{
-						Label: "apiVersion",
-						Kind:  messages.PropertyCompletion,
+						Label: "Occurrences",
+						Kind:  messages.ValueCompletion,
 					},
 					{
-						Label: "kind",
-						Kind:  messages.PropertyCompletion,
-					},
-					{
-						Label: "metadata",
-						Kind:  messages.PropertyCompletion,
-					},
-					{
-						Label: "spec",
-						Kind:  messages.PropertyCompletion,
+						Label: "Timeslices",
+						Kind:  messages.ValueCompletion,
 					},
 				},
 			},

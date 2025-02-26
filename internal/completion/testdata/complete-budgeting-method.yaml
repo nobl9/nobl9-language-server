@@ -29,11 +29,3 @@ spec:
       count: 1
       isRolling: false
       unit: Day
----
-apiVersion: n9/v1alpha
-kind: S
-metadata:
-  name: my-service
-  project: default
-spec:
-  description: Example Service

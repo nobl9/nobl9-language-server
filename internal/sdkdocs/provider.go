@@ -51,6 +51,7 @@ func (s Docs) GetProperty(kind manifest.Kind, path string) *PropertyDoc {
 	return nil
 }
 
+// GetDeprecatedPaths returns a list of deprecated paths for the given kind.
 func (s Docs) GetDeprecatedPaths(kind manifest.Kind) []string {
 	return s.deprecated[kind]
 }

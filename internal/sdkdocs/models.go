@@ -18,6 +18,7 @@ type PropertyDoc struct {
 	IsOptional    bool       `json:"isOptional,omitempty"`
 	IsSecret      bool       `json:"isSecret,omitempty"`
 	Examples      []string   `json:"examples,omitempty"`
+	Values        []string   `json:"values,omitempty"`
 	Rules         []RulePlan `json:"rules,omitempty"`
 	ChildrenPaths []string   `json:"childrenPaths,omitempty"`
 }

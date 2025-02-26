@@ -18,13 +18,19 @@ var levelNames = map[slog.Leveler]string{
 
 func Setup(flagConf Config) io.Closer {
 	conf := flagConf
-	lf, err := os.OpenFile(conf.LogFile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
-	if err != nil {
-		slog.Error("failed to open log output file", slog.Any("error", err))
-		os.Exit(1)
+	var writer io.WriteCloser
+	if conf.LogFile != "" {
+		lf, err := os.OpenFile(conf.LogFile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
+		if err != nil {
+			slog.Error("failed to open log output file", slog.Any("error", err))
+			os.Exit(1)
+		}
+		writer = lf
+	} else {
+		writer = os.Stderr
 	}
 	logLevel = conf.LogLevel.Level
-	jsonHandler := slog.NewJSONHandler(lf, &slog.HandlerOptions{
+	jsonHandler := slog.NewJSONHandler(writer, &slog.HandlerOptions{
 		// We're using our own source handler.
 		AddSource: false,
 		Level:     conf.LogLevel.Level,
@@ -45,7 +51,7 @@ func Setup(flagConf Config) io.Closer {
 	handler := sourceHandler{Handler: jsonHandler}
 	defaultLogger := slog.New(contextHandler{Handler: handler})
 	slog.SetDefault(defaultLogger)
-	return lf
+	return writer
 }
 
 func GetLogLevel() slog.Level {
