@@ -1,6 +1,8 @@
 package completion
 
 import (
+	"context"
+
 	"github.com/nobl9/nobl9-go/manifest"
 
 	"github.com/nobl9/nobl9-language-server/internal/messages"
@@ -14,8 +16,8 @@ func NewObjectsRefProvider(repo objectsRepo) *ObjectsRefProvider {
 	return &ObjectsRefProvider{repo: repo}
 }
 
-func (o ObjectsRefProvider) CompleteProjectName() []messages.CompletionItem {
-	projects := o.repo.GetAllNames(manifest.KindProject, "")
+func (o ObjectsRefProvider) CompleteProjectName(ctx context.Context) []messages.CompletionItem {
+	projects := o.repo.GetAllNames(ctx, manifest.KindProject, "")
 	items := make([]messages.CompletionItem, 0, len(projects))
 	for _, project := range projects {
 		items = append(items, messages.CompletionItem{

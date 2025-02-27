@@ -1,0 +1,39 @@
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: my-name
+  name: my-name
+  project: default
+spec:
+  alertPolicies:
+    - fast-burn-5x-for-last-10m
+  anomalyConfig:
+    noData:
+      alertMethods:
+        - name: slack-notification
+          project: default
+  attachments:
+    - displayName: Nobl9 Documentation
+      url: https://docs.nobl9.com
+  budgetingMethod: Occurrences
+  description: some description
+  indicator:
+    metricSource:
+      kind: Agent
+      name: test
+      project: kasia-project
+  objectives:
+    - displayName: Good response (200)
+      name: ok
+      primary: true
+      target: 0.95
+      value: 1.0
+      composite:
+        maxDelay: 3m
+        components:
+          
+  service: processing
+  timeWindows:
+    - count: 1.0
+      isRolling: true
+      unit: Hour

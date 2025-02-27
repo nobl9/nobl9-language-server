@@ -170,8 +170,8 @@ func TestHandler_Handle(t *testing.T) {
 						Severity: messages.DiagnosticSeverityError,
 						Source:   ptr(config.ServerName),
 						Range: messages.Range{
-							Start: messages.Position{Line: 10, Character: 4},
-							End:   messages.Position{Line: 10, Character: 16},
+							Start: messages.Position{Line: 11, Character: 12},
+							End:   messages.Position{Line: 11, Character: 19},
 						},
 					},
 				},
@@ -194,6 +194,46 @@ func TestHandler_Handle(t *testing.T) {
 						Range: messages.Range{
 							Start: messages.Position{Line: 7, Character: 2},
 							End:   messages.Position{Line: 7, Character: 11},
+						},
+					},
+				},
+			},
+		},
+		"invalid composite": {
+			item: messages.TextDocumentItem{
+				URI:     getTestFileURI("invalid-composite.yaml").URI,
+				Version: 1,
+				Text:    "foo",
+			},
+			expected: &messages.PublishDiagnosticsParams{
+				URI:     getTestFileURI("invalid-composite.yaml").URI,
+				Version: 1,
+				Diagnostics: []messages.Diagnostic{
+					{
+						Message:  "property is forbidden",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 19, Character: 2},
+							End:   messages.Position{Line: 19, Character: 11},
+						},
+					},
+					{
+						Message:  "spec.objectives[0].composite.components.objectives[0].weight: should be greater than '0'",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 34, Character: 12},
+							End:   messages.Position{Line: 34, Character: 22},
+						},
+					},
+					{
+						Message:  "spec.objectives[0].composite.components.objectives[0].whenDelayed: property is required but was empty",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 34, Character: 12},
+							End:   messages.Position{Line: 34, Character: 22},
 						},
 					},
 				},
@@ -222,4 +262,8 @@ func (o objectsProviderMock) GetObject(
 		return v1alpha.GenericObject{}, nil
 	}
 	return nil, nil
+}
+
+func (o objectsProviderMock) GetDefaultProject() string {
+	return "default"
 }

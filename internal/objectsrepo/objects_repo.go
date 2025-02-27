@@ -30,6 +30,10 @@ type (
 	objectProject = string
 )
 
+func (r *Repo) GetDefaultProject() string {
+	return r.client.Config.Project
+}
+
 func (r *Repo) Apply(ctx context.Context, objects []manifest.Object) error {
 	return r.client.Objects().V1().Apply(ctx, objects)
 }
@@ -38,8 +42,8 @@ func (r *Repo) Delete(ctx context.Context, objects []manifest.Object) error {
 	return r.client.Objects().V1().Delete(ctx, objects)
 }
 
-func (r *Repo) GetAllNames(kind manifest.Kind, project string) []string {
-	r.init()
+func (r *Repo) GetAllNames(ctx context.Context, kind manifest.Kind, project string) []string {
+	r.init(ctx)
 	return r.objects[kind][project]
 }
 
@@ -67,9 +71,8 @@ func (r *Repo) GetObject(ctx context.Context, kind manifest.Kind, name, project 
 	return objects[0], nil
 }
 
-func (r *Repo) init() {
+func (r *Repo) init(ctx context.Context) {
 	r.once.Do(func() {
-		ctx := context.Background()
 		projects, err := r.client.Objects().V1().GetV1alphaProjects(ctx, v1objects.GetProjectsRequest{})
 		if err != nil {
 			slog.Error("failed to fetch projects", slog.Any("error", err))

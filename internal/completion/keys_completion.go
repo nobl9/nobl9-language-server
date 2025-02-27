@@ -73,11 +73,13 @@ func (p KeysCompletionProvider) Complete(
 		if (prop == nil || len(prop.ChildrenPaths) == 0) && !isRootSpecOrMetadata {
 			// Proposed path is a simple value node.
 			insertText = proposedPath + ": "
+		} else if strings.HasSuffix(proposedPath, "[*]") {
+			insertText = strings.TrimSuffix(proposedPath, "[*]") + ":\n" + strings.Repeat(" ", line.GetIndent()) + "- "
 		} else {
 			// Proposed path has children nodes and therefore continues on the next line.
 			// FIXME: This needs to be handled better, we should either detect default
 			// tabstop character or use workspace/configuration or expose LS config option.
-			insertText = proposedPath + ":\n  "
+			insertText = proposedPath + ":\n" + strings.Repeat(" ", line.GetIndent())
 		}
 		items = append(items, messages.CompletionItem{
 			Label:            proposedPath,

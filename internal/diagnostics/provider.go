@@ -4,12 +4,17 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strconv"
 
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
 	"github.com/nobl9/nobl9-go/manifest"
 	"github.com/nobl9/nobl9-go/manifest/v1alpha"
+	v1alphaAlertPolicy "github.com/nobl9/nobl9-go/manifest/v1alpha/alertpolicy"
+	v1alphaAlertSilence "github.com/nobl9/nobl9-go/manifest/v1alpha/alertsilence"
+	v1alphaAnnotation "github.com/nobl9/nobl9-go/manifest/v1alpha/annotation"
+	v1alphaBudgetAdjustment "github.com/nobl9/nobl9-go/manifest/v1alpha/budgetadjustment"
+	v1alphaReport "github.com/nobl9/nobl9-go/manifest/v1alpha/report"
+	v1alphaRoleBinding "github.com/nobl9/nobl9-go/manifest/v1alpha/rolebinding"
 	v1alphaSLO "github.com/nobl9/nobl9-go/manifest/v1alpha/slo"
 	"github.com/pkg/errors"
 
@@ -29,6 +34,7 @@ type deprecatedPathsProvider interface {
 
 type objectsProvider interface {
 	GetObject(ctx context.Context, kind manifest.Kind, name, project string) (manifest.Object, error)
+	GetDefaultProject() string
 }
 
 func NewProvider(deprecated deprecatedPathsProvider, objects objectsProvider) *Provider {
@@ -91,54 +97,328 @@ func (d Provider) checkReferencedObjects(ctx context.Context, object *files.Obje
 	diagnostics := d.checkForProjectExistence(ctx, object)
 	switch v := object.Object.(type) {
 	case v1alphaSLO.SLO:
-		if v.Spec.Service != "" {
-			diag, exists := d.checkObjectExistence(
+		diagnostics = append(diagnostics, d.checkSLOReferencedObjects(ctx, object, v)...)
+	case v1alphaAlertPolicy.AlertPolicy:
+		diagnostics = append(diagnostics, d.checkAlertPolicyReferencedObjects(ctx, object, v)...)
+	case v1alphaAlertSilence.AlertSilence:
+		diagnostics = append(diagnostics, d.checkAlertSilenceReferencedObjects(ctx, object, v)...)
+	case v1alphaAnnotation.Annotation:
+		diagnostics = append(diagnostics, d.checkAnnotationReferencedObjects(ctx, object, v)...)
+	case v1alphaBudgetAdjustment.BudgetAdjustment:
+		diagnostics = append(diagnostics, d.checkBudgetAdjustmentReferencedObjects(ctx, object, v)...)
+	case v1alphaReport.Report:
+		diagnostics = append(diagnostics, d.checkReportReferencedObjects(ctx, object, v)...)
+	case v1alphaRoleBinding.RoleBinding:
+		diagnostics = append(diagnostics, d.checkRoleBindingReferencedObjects(ctx, object, v)...)
+	}
+	return diagnostics
+}
+
+func (d Provider) checkRoleBindingReferencedObjects(
+	ctx context.Context,
+	object *files.ObjectNode,
+	roleBinding v1alphaRoleBinding.RoleBinding,
+) []messages.Diagnostic {
+	return nil
+}
+
+func (d Provider) checkReportReferencedObjects(
+	ctx context.Context,
+	object *files.ObjectNode,
+	report v1alphaReport.Report,
+) []messages.Diagnostic {
+	return nil
+}
+
+func (d Provider) checkBudgetAdjustmentReferencedObjects(
+	ctx context.Context,
+	object *files.ObjectNode,
+	budgetAdjustment v1alphaBudgetAdjustment.BudgetAdjustment,
+) []messages.Diagnostic {
+	var diagnostics []messages.Diagnostic
+	for i, sloRef := range budgetAdjustment.Spec.Filters.SLOs {
+		diags := d.checkObjectExistence(
+			ctx,
+			object.Node,
+			fmt.Sprintf("$.spec.filters.slos[%d].project", i),
+			manifest.KindProject,
+			sloRef.Project,
+			"",
+		)
+		if len(diags) > 0 {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		diagnostics = append(diagnostics, d.checkObjectExistence(
+			ctx,
+			object.Node,
+			fmt.Sprintf("$.spec.filters.slos[%d].name", i),
+			manifest.KindSLO,
+			sloRef.Name,
+			sloRef.Project,
+		)...)
+	}
+	return diagnostics
+}
+
+func (d Provider) checkAnnotationReferencedObjects(
+	ctx context.Context,
+	object *files.ObjectNode,
+	annotation v1alphaAnnotation.Annotation,
+) []messages.Diagnostic {
+	diags := d.checkObjectExistence(
+		ctx,
+		object.Node,
+		"$.spec.slo",
+		manifest.KindSLO,
+		annotation.Spec.Slo,
+		annotation.GetProject(),
+	)
+	if len(diags) > 0 {
+		return diags
+	}
+	return d.checkObjectiveExistence(
+		ctx,
+		object.Node,
+		"$.spec.objective",
+		annotation.Spec.ObjectiveName,
+		annotation.Spec.Slo,
+		annotation.GetProject(),
+	)
+}
+
+func (d Provider) checkAlertSilenceReferencedObjects(
+	ctx context.Context,
+	object *files.ObjectNode,
+	alertSilence v1alphaAlertSilence.AlertSilence,
+) []messages.Diagnostic {
+	alertPolicyProject := alertSilence.Spec.AlertPolicy.Project
+	if alertPolicyProject == "" {
+		alertPolicyProject = alertSilence.GetProject()
+	} else {
+		diags := d.checkObjectExistence(
+			ctx,
+			object.Node,
+			"$.spec.alertPolicy.project",
+			manifest.KindProject,
+			alertPolicyProject,
+			"",
+		)
+		if len(diags) > 0 {
+			return diags
+		}
+	}
+	diags := d.checkObjectExistence(
+		ctx,
+		object.Node,
+		"$.spec.alertPolicy.name",
+		manifest.KindAlertPolicy,
+		alertSilence.Spec.AlertPolicy.Name,
+		alertPolicyProject,
+	)
+	diags = append(diags, d.checkObjectExistence(
+		ctx,
+		object.Node,
+		"$.spec.slo",
+		manifest.KindSLO,
+		alertSilence.Spec.SLO,
+		alertSilence.GetProject(),
+	)...)
+	return diags
+}
+
+func (d Provider) checkAlertPolicyReferencedObjects(
+	ctx context.Context,
+	object *files.ObjectNode,
+	alertPolicy v1alphaAlertPolicy.AlertPolicy,
+) []messages.Diagnostic {
+	var diagnostics []messages.Diagnostic
+	for i, alertMethod := range alertPolicy.Spec.AlertMethods {
+		project := alertMethod.Metadata.Project
+		if project == "" {
+			project = alertPolicy.GetProject()
+		} else {
+			diags := d.checkObjectExistence(
 				ctx,
 				object.Node,
-				"$.spec.service",
-				manifest.KindService,
-				v.Spec.Service,
-				v.GetProject(),
+				fmt.Sprintf("$.spec.alertMethods[%d].metadata.project", i),
+				manifest.KindProject,
+				project,
+				"",
 			)
-			if !exists {
-				diagnostics = append(diagnostics, diag)
-			}
-		}
-		for i, alertPolicy := range v.Spec.AlertPolicies {
-			if alertPolicy == "" {
+			if len(diags) > 0 {
+				diagnostics = append(diagnostics, diags...)
 				continue
 			}
-			diag, exists := d.checkObjectExistence(
+		}
+		diagnostics = append(diagnostics, d.checkObjectExistence(
+			ctx,
+			object.Node,
+			fmt.Sprintf("$.spec.alertMethods[%d].metadata.name", i),
+			manifest.KindAlertMethod,
+			alertMethod.Metadata.Name,
+			project,
+		)...)
+	}
+	return diagnostics
+}
+
+func (d Provider) checkSLOReferencedObjects(
+	ctx context.Context,
+	object *files.ObjectNode,
+	slo v1alphaSLO.SLO,
+) []messages.Diagnostic {
+	var diagnostics []messages.Diagnostic
+	if slo.Spec.Service != "" {
+		diagnostics = append(diagnostics, d.checkObjectExistence(
+			ctx,
+			object.Node,
+			"$.spec.service",
+			manifest.KindService,
+			slo.Spec.Service,
+			slo.GetProject(),
+		)...)
+	}
+	for i, alertPolicy := range slo.Spec.AlertPolicies {
+		if alertPolicy == "" {
+			continue
+		}
+		diagnostics = append(diagnostics, d.checkObjectExistence(
+			ctx,
+			object.Node,
+			fmt.Sprintf("$.spec.alertPolicies[%d]", i),
+			manifest.KindAlertPolicy,
+			alertPolicy,
+			slo.GetProject(),
+		)...)
+	}
+	if slo.Spec.Indicator != nil {
+		diagnostics = append(diagnostics, d.checkSLOIndicatorReferencedObjects(ctx, object, slo)...)
+	}
+	if slo.Spec.AnomalyConfig != nil && slo.Spec.AnomalyConfig.NoData != nil {
+		diagnostics = append(diagnostics, d.checkSLOAnomalyConfigReferencedObjects(ctx, object, slo)...)
+	}
+	diagnostics = append(diagnostics, d.checkSLOCompositeReferencedObjects(ctx, object, slo)...)
+	return diagnostics
+}
+
+func (d Provider) checkSLOIndicatorReferencedObjects(
+	ctx context.Context,
+	object *files.ObjectNode,
+	slo v1alphaSLO.SLO,
+) []messages.Diagnostic {
+	sourceProject := slo.Spec.Indicator.MetricSource.Project
+	if sourceProject == "" {
+		sourceProject = slo.GetProject()
+	} else {
+		diags := d.checkObjectExistence(
+			ctx,
+			object.Node,
+			"$.spec.indicator.metricSource.project",
+			manifest.KindProject,
+			sourceProject,
+			"",
+		)
+		if len(diags) > 0 {
+			return diags
+		}
+	}
+	sourceKind := slo.Spec.Indicator.MetricSource.Kind
+	if sourceKind == 0 {
+		sourceKind = manifest.KindAgent
+	}
+	return d.checkObjectExistence(
+		ctx,
+		object.Node,
+		"$.spec.indicator.metricSource.name",
+		sourceKind,
+		slo.Spec.Indicator.MetricSource.Name,
+		sourceProject,
+	)
+}
+
+func (d Provider) checkSLOAnomalyConfigReferencedObjects(
+	ctx context.Context,
+	object *files.ObjectNode,
+	slo v1alphaSLO.SLO,
+) []messages.Diagnostic {
+	var diagnostics []messages.Diagnostic
+	for i, alertMethod := range slo.Spec.AnomalyConfig.NoData.AlertMethods {
+		project := alertMethod.Project
+		if project == "" {
+			project = slo.GetProject()
+		} else {
+			diags := d.checkObjectExistence(
 				ctx,
 				object.Node,
-				"$.spec.alertPolicies["+strconv.Itoa(i)+"]",
-				manifest.KindAlertPolicy,
-				alertPolicy,
-				v.GetProject(),
+				fmt.Sprintf("$.spec.anomalyConfig.noData.alertMethods[%d].project", i),
+				manifest.KindProject,
+				project,
+				"",
 			)
-			if !exists {
-				diagnostics = append(diagnostics, diag)
+			if len(diags) > 0 {
+				diagnostics = append(diagnostics, diags...)
+				continue
 			}
 		}
-		if v.Spec.Indicator != nil {
-			sourceProject := v.Spec.Indicator.MetricSource.Project
-			if sourceProject == "" {
-				sourceProject = v.GetProject()
-			}
-			sourceKind := v.Spec.Indicator.MetricSource.Kind
-			if sourceKind == 0 {
-				sourceKind = manifest.KindAgent
-			}
-			diag, exists := d.checkObjectExistence(
+		diagnostics = append(diagnostics, d.checkObjectExistence(
+			ctx,
+			object.Node,
+			fmt.Sprintf("$.spec.anomalyConfig.noData.alertMethods[%d].name", i),
+			manifest.KindAlertMethod,
+			alertMethod.Name,
+			project,
+		)...)
+	}
+	return diagnostics
+}
+
+func (d Provider) checkSLOCompositeReferencedObjects(
+	ctx context.Context,
+	object *files.ObjectNode,
+	slo v1alphaSLO.SLO,
+) []messages.Diagnostic {
+	var diagnostics []messages.Diagnostic
+	for i := range slo.Spec.Objectives {
+		if slo.Spec.Objectives[i].Composite == nil {
+			continue
+		}
+		for j, objective := range slo.Spec.Objectives[i].Composite.Objectives {
+			diags := d.checkObjectExistence(
 				ctx,
 				object.Node,
-				"$.spec.indicator.metricSource",
-				sourceKind,
-				v.Spec.Indicator.MetricSource.Name,
-				sourceProject,
+				fmt.Sprintf("$.spec.objectives[%d].composite.components.objectives[%d].project", i, j),
+				manifest.KindProject,
+				objective.Project,
+				"",
 			)
-			if !exists {
-				diagnostics = append(diagnostics, diag)
+			if len(diags) > 0 {
+				diagnostics = append(diagnostics, diags...)
+				continue
+			}
+			diags = d.checkObjectExistence(
+				ctx,
+				object.Node,
+				fmt.Sprintf("$.spec.objectives[%d].composite.components.objectives[%d].slo", i, j),
+				manifest.KindSLO,
+				objective.SLO,
+				objective.Project,
+			)
+			if len(diags) > 0 {
+				diagnostics = append(diagnostics, diags...)
+				continue
+			}
+			diags = d.checkObjectiveExistence(
+				ctx,
+				object.Node,
+				fmt.Sprintf("$.spec.objectives[%d].composite.components.objectives[%d].objective", i, j),
+				objective.Objective,
+				objective.SLO,
+				objective.Project,
+			)
+			if len(diags) > 0 {
+				diagnostics = append(diagnostics, diags...)
+				continue
 			}
 		}
 	}
@@ -154,7 +434,7 @@ func (d Provider) checkForProjectExistence(ctx context.Context, object *files.Ob
 	if project == "" {
 		return nil
 	}
-	diag, exists := d.checkObjectExistence(
+	return d.checkObjectExistence(
 		ctx,
 		object.Node,
 		"$.metadata.project",
@@ -162,10 +442,6 @@ func (d Provider) checkForProjectExistence(ctx context.Context, object *files.Ob
 		project,
 		"",
 	)
-	if !exists {
-		return []messages.Diagnostic{diag}
-	}
-	return nil
 }
 
 func (d Provider) checkObjectExistence(
@@ -174,7 +450,7 @@ func (d Provider) checkObjectExistence(
 	propertyPath string,
 	kind manifest.Kind,
 	objectName, projectName string,
-) (diag messages.Diagnostic, exists bool) {
+) []messages.Diagnostic {
 	object, err := d.objects.GetObject(ctx, kind, objectName, projectName)
 	if err != nil {
 		slog.ErrorContext(
@@ -186,29 +462,14 @@ func (d Provider) checkObjectExistence(
 			slog.Any("objectName", objectName),
 			slog.Any("projectName", projectName),
 		)
-		return diag, true
+		return nil
 	}
 	if object != nil {
-		return diag, true
+		return nil
 	}
-	p, err := yamlpath.FromString(propertyPath)
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to get yaml path", slog.Any("error", err))
-		return diag, true
-	}
-	var rng messages.Range
-	filteredNode, _, err := p.FilterNode(node.Node)
-	if err != nil {
-		if !errors.Is(err, yaml.ErrNotFoundNode) {
-			slog.ErrorContext(ctx, "failed to read yaml node by path",
-				slog.Any("yamlPath", p),
-				slog.String("propPath", propertyPath),
-				slog.Any("error", err))
-			return diag, true
-		}
-		rng = newPointRange(node.StartLine, 0)
-	} else {
-		rng = getRangeFromNode(filteredNode)
+	mappingValueNode := findNodeForPath(ctx, propertyPath, node.Node)
+	if mappingValueNode == nil {
+		return nil
 	}
 	var message string
 	if projectName != "" {
@@ -216,12 +477,82 @@ func (d Provider) checkObjectExistence(
 	} else {
 		message = fmt.Sprintf("%s does not exist", kind)
 	}
-	return messages.Diagnostic{
-		Range:    rng,
+	return []messages.Diagnostic{{
+		Range:    getRangeFromNode(mappingValueNode),
 		Severity: messages.DiagnosticSeverityError,
 		Source:   ptr(config.ServerName),
 		Message:  message,
-	}, false
+	}}
+}
+
+func (d Provider) checkObjectiveExistence(
+	ctx context.Context,
+	node *yamlast.Node,
+	propertyPath string,
+	objectiveName, sloName, projectName string,
+) []messages.Diagnostic {
+	object, err := d.objects.GetObject(ctx, manifest.KindSLO, sloName, projectName)
+	if err != nil {
+		slog.ErrorContext(
+			ctx,
+			"failed to fetch SLO for reference check",
+			slog.Any("error", err),
+			slog.String("propPath", propertyPath),
+			slog.Any("sloName", sloName),
+			slog.Any("projectName", projectName),
+		)
+		return nil
+	}
+	if object == nil {
+		return nil
+	}
+	slo, ok := object.(v1alphaSLO.SLO)
+	if !ok {
+		slog.ErrorContext(ctx, "failed to cast object to SLO")
+		return nil
+	}
+	for i := range slo.Spec.Objectives {
+		if slo.Spec.Objectives[i].Name == objectiveName {
+			return nil
+		}
+	}
+	mappingValueNode := findNodeForPath(ctx, propertyPath, node.Node)
+	if mappingValueNode == nil {
+		return nil
+	}
+	return []messages.Diagnostic{{
+		Range:    getRangeFromNode(mappingValueNode),
+		Severity: messages.DiagnosticSeverityError,
+		Source:   ptr(config.ServerName),
+		Message: fmt.Sprintf(
+			"objective does not exist in SLO %s and Project %s",
+			sloName, projectName),
+	}}
+}
+
+func findNodeForPath(ctx context.Context, path string, node ast.Node) ast.Node {
+	p, err := yamlpath.FromString(path)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to get yaml path",
+			slog.String("path", path),
+			slog.Any("error", err))
+		return nil
+	}
+	filteredNode, _, err := p.FilterNode(node)
+	if err != nil {
+		if !errors.Is(err, yaml.ErrNotFoundNode) {
+			slog.ErrorContext(ctx, "failed to read yaml node by path",
+				slog.Any("yamlPath", p),
+				slog.String("propPath", path),
+				slog.Any("error", err))
+		}
+		return nil
+	}
+	if filteredNode == nil {
+		slog.ErrorContext(ctx, "failed to find yaml node by path - node is nil")
+		return nil
+	}
+	return filteredNode
 }
 
 func (d Provider) checkDeprecated(object *files.SimpleObjectNode) []messages.Diagnostic {
@@ -350,7 +681,7 @@ func getRangeFromNode(node ast.Node) messages.Range {
 		return newLineRange(token.Position.Line, token.Position.Column-1, token.Position.Column+len(v.Value)-1)
 	default:
 		token := node.GetToken()
-		return newLineRange(token.Position.Line, 0, token.Position.Column)
+		return newLineRange(token.Position.Line, token.Position.IndentNum, token.Position.Column)
 	}
 }
 

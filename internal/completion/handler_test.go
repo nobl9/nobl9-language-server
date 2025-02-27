@@ -332,6 +332,25 @@ spec:
 `,
 			},
 		},
+		"complete composite field": {
+			params: messages.CompletionParams{
+				TextDocumentPositionParams: messages.TextDocumentPositionParams{
+					TextDocument: getTestFileURI("composite.yaml"),
+					Position: messages.Position{
+						Line:      33,
+						Character: 10,
+					},
+				},
+			},
+			expected: []messages.CompletionItem{
+				{
+					Label:            "objectives[*]",
+					Kind:             messages.PropertyCompletion,
+					InsertText:       "objectives:\n          - ",
+					InsertTextFormat: messages.PlainTextTextFormat,
+				},
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -444,9 +463,13 @@ type mockObjectsRepo struct {
 	projectNames []string
 }
 
-func (m mockObjectsRepo) GetAllNames(kind manifest.Kind, _ string) []string {
+func (m mockObjectsRepo) GetAllNames(_ context.Context, kind manifest.Kind, _ string) []string {
 	if kind == manifest.KindProject {
 		return m.projectNames
 	}
 	return nil
+}
+
+func (m mockObjectsRepo) GetDefaultProject() string {
+	return "default"
 }

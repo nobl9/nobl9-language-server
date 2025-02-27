@@ -1,6 +1,8 @@
 package completion
 
 import (
+	"context"
+
 	"github.com/nobl9/nobl9-go/manifest"
 
 	"github.com/nobl9/nobl9-language-server/internal/files"
@@ -11,7 +13,7 @@ import (
 )
 
 type objectsRepo interface {
-	GetAllNames(kind manifest.Kind, project string) []string
+	GetAllNames(ctx context.Context, kind manifest.Kind, project string) []string
 }
 
 type docsProvider interface {
@@ -22,28 +24,143 @@ type refProviderFunc func() []messages.CompletionItem
 
 func NewReferencesCompletionProvider(refProvider *ObjectsRefProvider) *ReferencesCompletionProvider {
 	config := []struct {
-		Path      string
-		Kinds     []manifest.Kind
-		Providers []refProviderFunc
+		Path     string
+		Kinds    []manifest.Kind
+		Provider refProviderFunc
 	}{
 		{
 			Path:  "$.metadata.project",
 			Kinds: projectScopedKinds,
-			Providers: []refProviderFunc{
-				refProvider.CompleteProjectName,
-			},
+		},
+		{
+			Path: "$.metadata.labels",
+		},
+		{
+			Path: "$.metadata.annotations",
+		},
+		{
+			Path:  "$.spec.alertMethods[*].name",
+			Kinds: []manifest.Kind{manifest.KindAlertPolicy},
+		},
+		{
+			Path:  "$.spec.alertMethods[*].project",
+			Kinds: []manifest.Kind{manifest.KindAlertPolicy},
+		},
+		{
+			Path:  "$.spec.slo",
+			Kinds: []manifest.Kind{manifest.KindAlertSilence},
+		},
+		{
+			Path:  "$.spec.alertPolicy.name",
+			Kinds: []manifest.Kind{manifest.KindAlertSilence},
+		},
+		{
+			Path:  "$.spec.alertPolicy.project",
+			Kinds: []manifest.Kind{manifest.KindAlertSilence},
+		},
+		{
+			Path:  "$.spec.slo",
+			Kinds: []manifest.Kind{manifest.KindAnnotation},
+		},
+		{
+			Path:  "$.spec.objectiveName",
+			Kinds: []manifest.Kind{manifest.KindAnnotation},
+		},
+		{
+			Path:  "$.spec.filters[*].slos[*].name",
+			Kinds: []manifest.Kind{manifest.KindBudgetAdjustment},
+		},
+		{
+			Path:  "$.spec.filters[*].slos[*].project",
+			Kinds: []manifest.Kind{manifest.KindBudgetAdjustment},
+		},
+		{
+			Path:  "$.spec.filters.projects[*]",
+			Kinds: []manifest.Kind{manifest.KindReport},
+		},
+		{
+			Path:  "$.spec.filters.services[*].name",
+			Kinds: []manifest.Kind{manifest.KindReport},
+		},
+		{
+			Path:  "$.spec.filters.services[*].project",
+			Kinds: []manifest.Kind{manifest.KindReport},
+		},
+		{
+			Path:  "$.spec.filters.services[*].project",
+			Kinds: []manifest.Kind{manifest.KindReport},
+		},
+		{
+			Path:  "$.spec.user",
+			Kinds: []manifest.Kind{manifest.KindRoleBinding},
+		},
+		{
+			Path:  "$.spec.groupRef",
+			Kinds: []manifest.Kind{manifest.KindRoleBinding},
+		},
+		{
+			Path:  "$.spec.roleRef",
+			Kinds: []manifest.Kind{manifest.KindRoleBinding},
+		},
+		{
+			Path:  "$.spec.projectRef",
+			Kinds: []manifest.Kind{manifest.KindRoleBinding},
+		},
+		{
+			Path:  "$.spec.members[*].id",
+			Kinds: []manifest.Kind{manifest.KindUserGroup},
+		},
+		{
+			Path:  "$.spec.members[*].id",
+			Kinds: []manifest.Kind{manifest.KindUserGroup},
+		},
+		{
+			Path:  "$.spec.service",
+			Kinds: []manifest.Kind{manifest.KindSLO},
+		},
+		{
+			Path:  "$.spec.indicator.metricSource.name",
+			Kinds: []manifest.Kind{manifest.KindSLO},
+		},
+		{
+			Path:  "$.spec.indicator.metricSource.project",
+			Kinds: []manifest.Kind{manifest.KindSLO},
+		},
+		{
+			Path:  "$.spec.alertPolicies[*]",
+			Kinds: []manifest.Kind{manifest.KindSLO},
+		},
+		{
+			Path:  "$.spec.objectives[*].composite.components.objectives[*].project",
+			Kinds: []manifest.Kind{manifest.KindSLO},
+		},
+		{
+			Path:  "$.spec.objectives[*].composite.components.objectives[*].slo",
+			Kinds: []manifest.Kind{manifest.KindSLO},
+		},
+		{
+			Path:  "$.spec.objectives[*].composite.components.objectives[*].objective",
+			Kinds: []manifest.Kind{manifest.KindSLO},
+		},
+		{
+			Path:  "$.spec.anomalyConfig.noData.alertMethods[*].project",
+			Kinds: []manifest.Kind{manifest.KindSLO},
+		},
+		{
+			Path:  "$.spec.anomalyConfig.noData.alertMethods[*].name",
+			Kinds: []manifest.Kind{manifest.KindSLO},
 		},
 	}
 	providers := make(map[string][]refProviderFunc, len(config))
-	for _, c := range config {
-		if len(c.Kinds) == 0 {
-			providers[c.Path] = c.Providers
-			continue
-		}
-		for _, kind := range c.Kinds {
-			providers[refProviderKey(kind, c.Path)] = c.Providers
-		}
-	}
+	//for _, c := range config {
+	//	if len(c.Kinds) == 0 {
+	//		providers[c.Path] = c.Provider
+	//		continue
+	//	}
+	//	for _, kind := range c.Kinds {
+	//		providers[refProviderKey(kind, c.Path)] = c.Provider
+	//	}
+	//}
 	return &ReferencesCompletionProvider{providers: providers}
 }
 
@@ -100,4 +217,11 @@ var projectScopedKinds = []manifest.Kind{
 	manifest.KindDirect,
 	manifest.KindDataExport,
 	manifest.KindAnnotation,
+}
+
+var labelsSupportingKinds = []manifest.Kind{
+	manifest.KindAlertPolicy,
+	manifest.KindProject,
+	manifest.KindService,
+	manifest.KindSLO,
 }

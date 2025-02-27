@@ -56,6 +56,10 @@ type Line struct {
 	listIndex     int
 }
 
+func (l *Line) GetIndent() int {
+	return l.indent
+}
+
 // IsType returns true if the line is of the specified [LineType].
 func (l *Line) IsType(typ LineType) bool {
 	return l.Type&typ != 0

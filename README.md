@@ -112,9 +112,9 @@ Server supports the following LSP features:
 - [x] Diagnostics
   - [x] YAML syntax errors
     <img src="./docs/assets/diagnostics-yaml-syntax-errors.png" alt="Example Image" width="800" />
-  - [x] Nobl9 static resource validation
+  - [x] Static validation of the Nobl9 configuration
     <img src="./docs/assets/diagnostics-static-validation.png" alt="Example Image" width="800" />
-  - [x] Nobl9 dynamic resource validation
+  - [x] Dynamic Nobl9 resource references validation
     <img src="./docs/assets/diagnostics-dynamic-validation.png" alt="Example Image" width="800" />
 - [x] Hover documentation
   <img src="./docs/assets/hover-documentation.gif" alt="Example Image" width="800" />
