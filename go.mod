@@ -3,11 +3,11 @@ module github.com/nobl9/nobl9-language-server
 go 1.23
 
 require (
-	github.com/goccy/go-yaml v1.13.4
-	github.com/nobl9/nobl9-go v0.92.4
+	github.com/goccy/go-yaml v1.15.23
+	github.com/nobl9/nobl9-go v0.96.0
 	github.com/pkg/errors v0.9.1
 	github.com/sourcegraph/jsonrpc2 v0.2.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 )
 
 require (
