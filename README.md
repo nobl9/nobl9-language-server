@@ -12,96 +12,8 @@ for Nobl9 configuration files.
 
 LSP stands for Language Server Protocol.
 It defines the protocol used between an editor or IDE and a language server
-that provides language features like auto complete, go to definition,
-find all references etc.
-
-## Features
-
-Currently only YAML format is supported. \
-Server supports the following LSP features:
-
-- [x] Auto completion
-  - [x] YAML key names
-    <img src="./docs/assets/completion-yaml-key-names.gif" alt="Example Image" width="800" />
-  - [x] Enum values
-    <img src="./docs/assets/completion-enum-values.gif" alt="Example Image" width="800" />
-  - [x] Nobl9 platform resource names
-    <img src="./docs/assets/completion-platform-resource-names.gif" alt="Example Image" width="800" />
-- [x] Diagnostics
-  - [x] YAML syntax errors
-    <img src="./docs/assets/diagnostics-yaml-syntax-errors.png" alt="Example Image" width="800" />
-  - [x] Nobl9 static resource validation
-    <img src="./docs/assets/diagnostics-static-validation.png" alt="Example Image" width="800" />
-  - [x] Nobl9 dynamic resource validation
-- [x] Hover documentation
-  <img src="./docs/assets/hover-documentation.gif" alt="Example Image" width="800" />
-- [x] Snippets
-  <img src="./docs/assets/code-actions.gif" alt="Example Image" width="800" />
-- [x] Code Actions
-  <img src="./docs/assets/code-actions.gif" alt="Example Image" width="800" />
-
-## Usage
-
-The language server is integrated with several development environments
-through dedicated plugins and extensions.
-However, in theory, every IDE which supports LSP should work
-with Nobl9 Language Server.
-
-The server communicates over standard input/output streams (stdio) using
-[JSON-RPC 2.0](https://www.jsonrpc.org/specification) protocol.
-Typically, an IDE (which in LSP nomenclature is called a _client_) would run
-the server, write requests to servers' standard input stream and read the
-responses from servers' standard output stream.\
-The following diagram demonstrates how an example communication flow
-between client (IDE) and server looks like:
-
-```mermaid
-sequenceDiagram
-    participant C as Language Client (IDE)
-    participant S as Language Server
-    Note right of C: User opens a YAML file with Nobl9 configuration
-    C->>S: textDocument/didOpen (file opened)
-    loop File Editing
-        C->>S: textDocument/didChange (file changed)
-        S-->>C: publishDiagnostics (errors, warnings)
-    end
-    C->>S: textDocument/completion (autocomplete request)
-    S-->>C: completion items
-    Note over C,S: Other LSP requests such as:<br/>textDocument/codeAction, textDocument/hover, etc.
-```
-
-### Integrations
-
-#### Visual Studio Code
-
-Refer to the [extension documentation](https://github.com/nobl9/nobl9-vscode/) for more details.
-
-#### Intellij Platform
-
-Refer to the [plugin documentation](https://github.com/nobl9/nobl9-intellij-platform-plugin) for more details.
-
-#### Neovim
-
-Minimal Neovim setup which assumes you've already configured
-snippets support and LSP configuration would look like this:
-
-```lua
-local lsp = require("lspconfig")
-local configs = require("lspconfig.configs")
-
-configs.nobl9_language_server = {
-  default_config = {
-    cmd = { "nobl9-language-server" },
-    filetypes = { "yaml" },
-    root_dir = function(fname)
-      return vim.fs.dirname(vim.fs.find(".git", { path = fname, upward = true })[1])
-    end,
-    settings = {},
-  },
-}
-```
-
-Full working example can be explored [here](./neovim-config/).
+(this project) that provides language features like auto complete,
+diagnose file, display documentation etc.
 
 ## Install
 
@@ -147,10 +59,104 @@ The binaries are available at
 go install github.com/nobl9/nobl9-language-server/cmd/nobl9-language-server@latest
 ```
 
+## Integrations
+
+### Visual Studio Code
+
+Refer to the [extension documentation](https://github.com/nobl9/nobl9-vscode/) for more details.
+
+### Intellij Platform
+
+Refer to the [plugin documentation](https://github.com/nobl9/nobl9-intellij-platform-plugin) for more details.
+
+### Neovim
+
+Minimal Neovim setup which assumes you've already configured
+snippets support and LSP configuration would look like this:
+
+```lua
+local lsp = require("lspconfig")
+local configs = require("lspconfig.configs")
+
+configs.nobl9_language_server = {
+  default_config = {
+    cmd = { "nobl9-language-server" },
+    filetypes = { "yaml" },
+    root_dir = function(fname)
+      return vim.fs.dirname(vim.fs.find(".git", { path = fname, upward = true })[1])
+    end,
+    settings = {},
+  },
+}
+```
+
+Full, working configuration can be found [here](./neovim-config/init.lua).
+You can play with it and adjust to your needs.
+
+```bash
+nvim --clean -u ./neovim-config/init.lua service.yaml
+```
+
+## Features
+
+Currently only YAML format is supported. \
+Server supports the following LSP features:
+
+- [x] Auto completion
+  - [x] YAML key names
+    <img src="./docs/assets/completion-yaml-key-names.gif" alt="Example Image" width="800" />
+  - [x] Enum values
+    <img src="./docs/assets/completion-enum-values.gif" alt="Example Image" width="800" />
+  - [x] Nobl9 platform resource names
+    <img src="./docs/assets/completion-references.gif" alt="Example Image" width="800" />
+- [x] Diagnostics
+  - [x] YAML syntax errors
+    <img src="./docs/assets/diagnostics-yaml-syntax-errors.png" alt="Example Image" width="800" />
+  - [x] Nobl9 static resource validation
+    <img src="./docs/assets/diagnostics-static-validation.png" alt="Example Image" width="800" />
+  - [x] Nobl9 dynamic resource validation
+    <img src="./docs/assets/diagnostics-dynamic-validation.png" alt="Example Image" width="800" />
+- [x] Hover documentation
+  <img src="./docs/assets/hover-documentation.gif" alt="Example Image" width="800" />
+- [x] Snippets
+  <img src="./docs/assets/code-actions.gif" alt="Example Image" width="800" />
+- [x] Code Actions
+  <img src="./docs/assets/snippets.gif" alt="Example Image" width="800" />
+
+## How it works
+
+The language server is integrated with several development environments
+through dedicated plugins and extensions.
+However, in theory, every IDE which supports LSP should work
+with Nobl9 Language Server.
+
+The server communicates over standard input/output streams (stdio) using
+[JSON-RPC 2.0](https://www.jsonrpc.org/specification) protocol.
+Typically, an IDE (which in LSP nomenclature is called a _client_) would run
+the server, write requests to servers' standard input stream and read the
+responses from servers' standard output stream.\
+The following diagram demonstrates how an example communication flow
+between client (IDE) and server looks like:
+
+```mermaid
+sequenceDiagram
+    participant C as Language Client (IDE)
+    participant S as Language Server
+    Note right of C: User opens a YAML file with Nobl9 configuration
+    C->>S: textDocument/didOpen (file opened)
+    loop File Editing
+        C->>S: textDocument/didChange (file changed)
+        S-->>C: publishDiagnostics (errors, warnings)
+    end
+    C->>S: textDocument/completion (autocomplete request)
+    S-->>C: completion items
+    Note over C,S: Other LSP requests such as:<br/>textDocument/codeAction, textDocument/hover, etc.
+```
+
 ## Configuration
 
 The Language Server comes with several configuration options.
-Each option can be supplied via a dedicated flag.
+Each option can be supplied via a dedicated flag when starting the server.
 
 ```bash
 # Log level, by default 'INFO'.
