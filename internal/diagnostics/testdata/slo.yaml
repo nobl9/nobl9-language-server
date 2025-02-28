@@ -3,7 +3,7 @@ kind: SLO
 metadata:
   displayName: datadog-calendar-timeslices-threshold
   name: datadog-calendar-timeslices-threshold
-  project: datadog
+  project: default
 spec:
   budgetingMethod: Timeslices
   description: ""
@@ -179,6 +179,39 @@ spec:
               objective: default
               whenDelayed: CountAsGood
               weight: 0.5
+  timeWindows:
+    - calendar:
+        startTime: "2020-11-14 12:30:00"
+        timeZone: Etc/UTC
+      count: 1
+      isRolling: false
+      unit: Day
+---
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-calendar-timeslices-threshold
+  name: datadog-calendar-timeslices-threshold
+  project: datadog
+spec:
+  budgetingMethod: Timeslices
+  description: ""
+  indicator:
+    metricSource:
+      name: datadog
+  service: datadog-n9
+  alertPolicies: [foo]
+  objectives:
+    - target: 0.7
+      op: lte
+      rawMetric:
+        query:
+          datadog:
+            query: avg:trace.http.request.duration.by_http_status{http.status_code:200}
+      displayName: doable
+      timeSliceTarget: 0.7
+      value: 0.2
+      name: objective-1
   timeWindows:
     - calendar:
         startTime: "2020-11-14 12:30:00"

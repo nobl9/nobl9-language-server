@@ -1,0 +1,56 @@
+- apiVersion: n9/v1alpha
+  kind: Report
+  metadata:
+    name: slo-history-report
+    displayName: SLO History
+  spec:
+    shared: true
+    filters:
+      projects:
+        - default
+        - custom
+    sloHistory:
+      timeFrame:
+        rolling:
+          unit: Week
+          count: 2
+        timeZone: Europe/Warsaw
+- apiVersion: n9/v1alpha
+  kind: Report
+  metadata:
+    name: slo-history-report
+    displayName: SLO History
+  spec:
+    shared: true
+    filters:
+      services:
+        - name: service-1
+          project: custom
+        - name: service-2
+          project: default
+        - name: default
+          project: default
+      slos:
+        - name: slo-1
+          project: custom
+        - name: slo-2
+          project: default
+        - name: default
+          project: default
+    sloHistory:
+      timeFrame:
+        rolling:
+          unit: Week
+          count: 2
+        timeZone: Europe/Warsaw
+- apiVersion: n9/v1alpha
+  kind: Report
+  metadata:
+    name: ebs-report
+    displayName: Error Budget Status
+  spec:
+    shared: true
+    filters:
+      projects:
+        - default
+    errorBudgetStatus: {}

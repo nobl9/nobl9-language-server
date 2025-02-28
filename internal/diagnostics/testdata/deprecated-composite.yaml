@@ -14,8 +14,8 @@ spec:
   description: this
   indicator:
     metricSource:
-      name: datadog
-  service: datadog-n9
+      name: default
+  service: default
   objectives:
     - target: 0.8
       op: lte

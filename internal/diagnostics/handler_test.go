@@ -14,6 +14,7 @@ import (
 	"github.com/nobl9/nobl9-language-server/internal/config"
 	"github.com/nobl9/nobl9-language-server/internal/files"
 	"github.com/nobl9/nobl9-language-server/internal/messages"
+	"github.com/nobl9/nobl9-language-server/internal/nobl9repo"
 	"github.com/nobl9/nobl9-language-server/internal/sdkdocs"
 	"github.com/nobl9/nobl9-language-server/internal/testutils"
 )
@@ -96,7 +97,9 @@ func TestHandler_Handle(t *testing.T) {
 				Diagnostics: []messages.Diagnostic{
 					{
 						Message: "string must match regular expression: " +
-							"'^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$' (e.g. 'my-name', '123-abc')",
+							"'^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$' (e.g. 'my-name', '123-abc')" +
+							"; an RFC-1123 compliant label name must consist of lower case alphanumeric characters" +
+							" or '-', and must start and end with an alphanumeric character",
 						Severity: messages.DiagnosticSeverityError,
 						Source:   ptr(config.ServerName),
 						Range: messages.Range{
@@ -140,16 +143,7 @@ func TestHandler_Handle(t *testing.T) {
 				Version: 1,
 				Diagnostics: []messages.Diagnostic{
 					{
-						Message:  "Project does not exist",
-						Severity: messages.DiagnosticSeverityError,
-						Source:   ptr(config.ServerName),
-						Range: messages.Range{
-							Start: messages.Position{Line: 5, Character: 11},
-							End:   messages.Position{Line: 5, Character: 18},
-						},
-					},
-					{
-						Message:  "Agent does not exist in Project datadog",
+						Message:  "Agent does not exist in Project default",
 						Severity: messages.DiagnosticSeverityError,
 						Source:   ptr(config.ServerName),
 						Range: messages.Range{
@@ -158,7 +152,7 @@ func TestHandler_Handle(t *testing.T) {
 						},
 					},
 					{
-						Message:  "Service does not exist in Project datadog",
+						Message:  "Service does not exist in Project default",
 						Severity: messages.DiagnosticSeverityError,
 						Source:   ptr(config.ServerName),
 						Range: messages.Range{
@@ -167,7 +161,7 @@ func TestHandler_Handle(t *testing.T) {
 						},
 					},
 					{
-						Message:  "AlertPolicy does not exist in Project datadog",
+						Message:  "AlertPolicy does not exist in Project default",
 						Severity: messages.DiagnosticSeverityError,
 						Source:   ptr(config.ServerName),
 						Range: messages.Range{
@@ -220,6 +214,326 @@ func TestHandler_Handle(t *testing.T) {
 							End:   messages.Position{Line: 143, Character: 28},
 						},
 					},
+					{
+						Message:  "Project does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 194, Character: 11},
+							End:   messages.Position{Line: 194, Character: 18},
+						},
+					},
+				},
+			},
+		},
+		"service referenced objects do not exist": {
+			item: messages.TextDocumentItem{
+				URI:     getTestFileURI("service.yaml").URI,
+				Version: 1,
+				Text:    "foo",
+			},
+			expected: &messages.PublishDiagnosticsParams{
+				URI:     getTestFileURI("service.yaml").URI,
+				Version: 1,
+				Diagnostics: []messages.Diagnostic{
+					{
+						Message:  "Project does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 5, Character: 11},
+							End:   messages.Position{Line: 5, Character: 17},
+						},
+					},
+				},
+			},
+		},
+		"alert policy referenced objects do not exist": {
+			item: messages.TextDocumentItem{
+				URI:     getTestFileURI("alert-policy.yaml").URI,
+				Version: 1,
+				Text:    "foo",
+			},
+			expected: &messages.PublishDiagnosticsParams{
+				URI:     getTestFileURI("alert-policy.yaml").URI,
+				Version: 1,
+				Diagnostics: []messages.Diagnostic{
+					{
+						Message:  "Project does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 5, Character: 13},
+							End:   messages.Position{Line: 5, Character: 19},
+						},
+					},
+					{
+						Message:  "AlertMethod does not exist in Project default",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 34, Character: 16},
+							End:   messages.Position{Line: 34, Character: 21},
+						},
+					},
+					{
+						Message:  "Project does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 79, Character: 19},
+							End:   messages.Position{Line: 79, Character: 25},
+						},
+					},
+				},
+			},
+		},
+		"alert silence referenced objects do not exist": {
+			item: messages.TextDocumentItem{
+				URI:     getTestFileURI("alert-silence.yaml").URI,
+				Version: 1,
+				Text:    "foo",
+			},
+			expected: &messages.PublishDiagnosticsParams{
+				URI:     getTestFileURI("alert-silence.yaml").URI,
+				Version: 1,
+				Diagnostics: []messages.Diagnostic{
+					{
+						Message:  "Project does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 4, Character: 11},
+							End:   messages.Position{Line: 4, Character: 17},
+						},
+					},
+					{
+						Message:  "SLO does not exist in Project default",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 20, Character: 7},
+							End:   messages.Position{Line: 20, Character: 36},
+						},
+					},
+					{
+						Message:  "AlertPolicy does not exist in Project default",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 23, Character: 10},
+							End:   messages.Position{Line: 23, Character: 22},
+						},
+					},
+				},
+			},
+		},
+		"annotation referenced objects do not exist": {
+			item: messages.TextDocumentItem{
+				URI:     getTestFileURI("annotation.yaml").URI,
+				Version: 1,
+				Text:    "foo",
+			},
+			expected: &messages.PublishDiagnosticsParams{
+				URI:     getTestFileURI("annotation.yaml").URI,
+				Version: 1,
+				Diagnostics: []messages.Diagnostic{
+					{
+						Message:  "Project does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 4, Character: 11},
+							End:   messages.Position{Line: 4, Character: 17},
+						},
+					},
+					{
+						Message:  "SLO does not exist in Project default",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 17, Character: 7},
+							End:   messages.Position{Line: 17, Character: 36},
+						},
+					},
+					{
+						Message:  "objective does not exist in SLO default and Project default",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 29, Character: 17},
+							End:   messages.Position{Line: 29, Character: 23},
+						},
+					},
+				},
+			},
+		},
+		"budget adjustment referenced objects do not exist": {
+			item: messages.TextDocumentItem{
+				URI:     getTestFileURI("budget-adjustment.yaml").URI,
+				Version: 1,
+				Text:    "foo",
+			},
+			expected: &messages.PublishDiagnosticsParams{
+				URI:     getTestFileURI("budget-adjustment.yaml").URI,
+				Version: 1,
+				Diagnostics: []messages.Diagnostic{
+					{
+						Message:  "Project does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 15, Character: 17},
+							End:   messages.Position{Line: 15, Character: 23},
+						},
+					},
+					{
+						Message:  "SLO does not exist in Project default",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 16, Character: 14},
+							End:   messages.Position{Line: 16, Character: 31},
+						},
+					},
+				},
+			},
+		},
+		"report referenced objects do not exist": {
+			item: messages.TextDocumentItem{
+				URI:     getTestFileURI("report.yaml").URI,
+				Version: 1,
+				Text:    "foo",
+			},
+			expected: &messages.PublishDiagnosticsParams{
+				URI:     getTestFileURI("report.yaml").URI,
+				Version: 1,
+				Diagnostics: []messages.Diagnostic{
+					{
+						Message:  "Project does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 10, Character: 10},
+							End:   messages.Position{Line: 10, Character: 16},
+						},
+					},
+					{
+						Message:  "Project does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 27, Character: 19},
+							End:   messages.Position{Line: 27, Character: 25},
+						},
+					},
+					{
+						Message:  "Service does not exist in Project default",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 28, Character: 16},
+							End:   messages.Position{Line: 28, Character: 25},
+						},
+					},
+					{
+						Message:  "Project does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 34, Character: 19},
+							End:   messages.Position{Line: 34, Character: 25},
+						},
+					},
+					{
+						Message:  "SLO does not exist in Project default",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 35, Character: 16},
+							End:   messages.Position{Line: 35, Character: 21},
+						},
+					},
+				},
+			},
+		},
+		"role binding referenced objects do not exist": {
+			item: messages.TextDocumentItem{
+				URI:     getTestFileURI("role-binding.yaml").URI,
+				Version: 1,
+				Text:    "foo",
+			},
+			expected: &messages.PublishDiagnosticsParams{
+				URI:     getTestFileURI("role-binding.yaml").URI,
+				Version: 1,
+				Diagnostics: []messages.Diagnostic{
+					{
+						Message:  "user does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 5, Character: 10},
+							End:   messages.Position{Line: 5, Character: 30},
+						},
+					},
+					{
+						Message:  "organization role does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 6, Character: 13},
+							End:   messages.Position{Line: 6, Character: 31},
+						},
+					},
+					{
+						Message:  "UserGroup does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 19, Character: 14},
+							End:   messages.Position{Line: 19, Character: 32},
+						},
+					},
+					{
+						Message:  "project role does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 34, Character: 13},
+							End:   messages.Position{Line: 34, Character: 27},
+						},
+					},
+					{
+						Message:  "project role does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 50, Character: 13},
+							End:   messages.Position{Line: 50, Character: 27},
+						},
+					},
+				},
+			},
+		},
+		"user group referenced objects do not exist": {
+			item: messages.TextDocumentItem{
+				URI:     getTestFileURI("user-group.yaml").URI,
+				Version: 1,
+				Text:    "foo",
+			},
+			expected: &messages.PublishDiagnosticsParams{
+				URI:     getTestFileURI("user-group.yaml").URI,
+				Version: 1,
+				Diagnostics: []messages.Diagnostic{
+					{
+						Message:  "user does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 7, Character: 10},
+							End:   messages.Position{Line: 7, Character: 17},
+						},
+					},
 				},
 			},
 		},
@@ -256,7 +570,7 @@ func TestHandler_Handle(t *testing.T) {
 				Version: 1,
 				Diagnostics: []messages.Diagnostic{
 					{
-						Message:  "property is forbidden",
+						Message:  "property is forbidden; indicator section is forbidden when spec.objectives[0].composite is provided",
 						Severity: messages.DiagnosticSeverityError,
 						Source:   ptr(config.ServerName),
 						Range: messages.Range{
@@ -322,4 +636,18 @@ func (o objectsProviderMock) GetObject(
 
 func (o objectsProviderMock) GetDefaultProject() string {
 	return "default"
+}
+
+func (o objectsProviderMock) GetUser(_ context.Context, id string) (*nobl9repo.User, error) {
+	if id == "default" {
+		return &nobl9repo.User{}, nil
+	}
+	return nil, nil
+}
+
+func (o objectsProviderMock) GetRoles(_ context.Context) (*nobl9repo.Roles, error) {
+	return &nobl9repo.Roles{
+		OrganizationRoles: []nobl9repo.Role{{Name: "default"}},
+		ProjectRoles:      []nobl9repo.Role{{Name: "default"}},
+	}, nil
 }

@@ -1,0 +1,40 @@
+apiVersion: n9/v1alpha
+kind: AlertSilence
+metadata:
+  name: 5661613e-0e3d-11ed-861d-0242ac120046
+  project: custom
+spec:
+  description: Detected issue with InfluxDB
+  slo: rolling-occurrences-threshold
+  alertPolicy:
+    name: trigger-alert-immediately
+  period:
+    duration: 1h
+---
+apiVersion: n9/v1alpha
+kind: AlertSilence
+metadata:
+  name: 5661613e-0e3d-11ed-861d-0242ac120456
+  project: default
+spec:
+  description: Detected issue with InfluxDB
+  slo: rolling-occurrences-threshold
+  alertPolicy:
+    project: default
+    name: burning-fast
+  period:
+    duration: 1h
+---
+apiVersion: n9/v1alpha
+kind: AlertSilence
+metadata:
+  name: 5661613e-0e3d-11ed-861d-0242ac120123
+  project: default
+spec:
+  description: Detected issue with InfluxDB
+  slo: default
+  alertPolicy:
+    project: default
+    name: default
+  period:
+    duration: 1h

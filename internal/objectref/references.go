@@ -43,10 +43,6 @@ var objectReferences = func() map[manifest.Kind][]*Reference {
 		//	Path:      "$.metadata.labels",
 		//	AppliesTo: labelsSupportingKinds,
 		//},
-		//{
-		//	Path:      "$.metadata.annotations",
-		//	AppliesTo: metadataAnnotationsKinds,
-		//},
 		{
 			Path:        "$.spec.alertMethods[*].name",
 			ProjectPath: "$.spec.alertMethods[*].project",
@@ -81,10 +77,10 @@ var objectReferences = func() map[manifest.Kind][]*Reference {
 			Kind:        manifest.KindSLO,
 			AppliesTo:   []manifest.Kind{manifest.KindAnnotation},
 		},
-		//{
-		//	Path:      "$.spec.objectiveName",
-		//	AppliesTo: []manifest.Kind{manifest.KindAnnotation},
-		//},
+		{
+			Path:      "$.spec.objectiveName",
+			AppliesTo: []manifest.Kind{manifest.KindAnnotation},
+		},
 		{
 			Path:        "$.spec.filters[*].slos[*].name",
 			ProjectPath: "$.spec.filters[*].slos[*].project",
@@ -112,42 +108,53 @@ var objectReferences = func() map[manifest.Kind][]*Reference {
 			Kind:      manifest.KindProject,
 			AppliesTo: []manifest.Kind{manifest.KindReport},
 		},
+		{
+			Path:        "$.spec.filters.slos[*].name",
+			ProjectPath: "$.spec.filters.slos[*].project",
+			Kind:        manifest.KindSLO,
+			AppliesTo:   []manifest.Kind{manifest.KindReport},
+		},
+		{
+			Path:      "$.spec.filters.slos[*].project",
+			Kind:      manifest.KindProject,
+			AppliesTo: []manifest.Kind{manifest.KindReport},
+		},
 		//{
 		//	Path:      "$.spec.filters.labels",
 		//	AppliesTo: []manifest.Kind{manifest.KindReport},
 		//},
-		//{
-		//	Path:      "$.spec.user",
-		//	AppliesTo: []manifest.Kind{manifest.KindRoleBinding},
-		//},
+		{
+			Path:      "$.spec.user",
+			AppliesTo: []manifest.Kind{manifest.KindRoleBinding},
+		},
 		{
 			Path:      "$.spec.groupRef",
 			Kind:      manifest.KindUserGroup,
 			AppliesTo: []manifest.Kind{manifest.KindRoleBinding},
 		},
-		//{
-		//	Path:      "$.spec.roleRef",
-		//	AppliesTo: []manifest.Kind{manifest.KindRoleBinding},
-		//},
+		{
+			Path:      "$.spec.roleRef",
+			AppliesTo: []manifest.Kind{manifest.KindRoleBinding},
+		},
 		{
 			Path:      "$.spec.projectRef",
 			Kind:      manifest.KindProject,
 			AppliesTo: []manifest.Kind{manifest.KindRoleBinding},
 		},
-		//{
-		//	Path:      "$.spec.members[*].id",
-		//	AppliesTo: []manifest.Kind{manifest.KindUserGroup},
-		//},
+		{
+			Path:      "$.spec.members[*].id",
+			AppliesTo: []manifest.Kind{manifest.KindUserGroup},
+		},
 		{
 			Path:        "$.spec.service",
 			ProjectPath: "$.metadata.project",
 			Kind:        manifest.KindService,
 			AppliesTo:   []manifest.Kind{manifest.KindSLO},
 		},
-		//{
-		//	Path:      "$.spec.indicator.metricSource.name",
-		//	AppliesTo: []manifest.Kind{manifest.KindSLO},
-		//},
+		{
+			Path:      "$.spec.indicator.metricSource.name",
+			AppliesTo: []manifest.Kind{manifest.KindSLO},
+		},
 		{
 			Path:      "$.spec.indicator.metricSource.project",
 			Kind:      manifest.KindProject,
@@ -170,10 +177,10 @@ var objectReferences = func() map[manifest.Kind][]*Reference {
 			Kind:        manifest.KindSLO,
 			AppliesTo:   []manifest.Kind{manifest.KindSLO},
 		},
-		//{
-		//	Path:      "$.spec.objectives[*].composite.components.objectives[*].objective",
-		//	AppliesTo: []manifest.Kind{manifest.KindSLO},
-		//},
+		{
+			Path:      "$.spec.objectives[*].composite.components.objectives[*].objective",
+			AppliesTo: []manifest.Kind{manifest.KindSLO},
+		},
 		{
 			Path:        "$.spec.anomalyConfig.noData.alertMethods[*].name",
 			ProjectPath: "$.spec.anomalyConfig.noData.alertMethods[*].project",
@@ -211,14 +218,6 @@ var projectScopedKinds = []manifest.Kind{
 
 // TODO: generate that from docs.
 var labelsSupportingKinds = []manifest.Kind{
-	manifest.KindAlertPolicy,
-	manifest.KindProject,
-	manifest.KindService,
-	manifest.KindSLO,
-}
-
-// TODO: generate that from docs.
-var metadataAnnotationsKinds = []manifest.Kind{
 	manifest.KindAlertPolicy,
 	manifest.KindProject,
 	manifest.KindService,

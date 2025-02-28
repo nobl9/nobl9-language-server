@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
@@ -16,11 +17,13 @@ import (
 	v1alphaReport "github.com/nobl9/nobl9-go/manifest/v1alpha/report"
 	v1alphaRoleBinding "github.com/nobl9/nobl9-go/manifest/v1alpha/rolebinding"
 	v1alphaSLO "github.com/nobl9/nobl9-go/manifest/v1alpha/slo"
+	v1alphaUserGroup "github.com/nobl9/nobl9-go/manifest/v1alpha/usergroup"
 	"github.com/pkg/errors"
 
 	"github.com/nobl9/nobl9-language-server/internal/config"
 	"github.com/nobl9/nobl9-language-server/internal/files"
 	"github.com/nobl9/nobl9-language-server/internal/messages"
+	"github.com/nobl9/nobl9-language-server/internal/nobl9repo"
 	"github.com/nobl9/nobl9-language-server/internal/yamlast"
 	"github.com/nobl9/nobl9-language-server/internal/yamlastsimple"
 	"github.com/nobl9/nobl9-language-server/internal/yamlpath"
@@ -35,6 +38,8 @@ type deprecatedPathsProvider interface {
 type objectsProvider interface {
 	GetObject(ctx context.Context, kind manifest.Kind, name, project string) (manifest.Object, error)
 	GetDefaultProject() string
+	GetUser(ctx context.Context, id string) (*nobl9repo.User, error)
+	GetRoles(ctx context.Context) (*nobl9repo.Roles, error)
 }
 
 func NewProvider(deprecated deprecatedPathsProvider, objects objectsProvider) *Provider {
@@ -95,6 +100,11 @@ func (d Provider) checkReferencedObjects(ctx context.Context, object *files.Obje
 		return nil
 	}
 	diagnostics := d.checkForProjectExistence(ctx, object)
+	// We rely on the project in further checks.
+	// If the project does not exist, we shouldn't check the other fields.
+	if len(diagnostics) > 0 {
+		return diagnostics
+	}
 	switch v := object.Object.(type) {
 	case v1alphaSLO.SLO:
 		diagnostics = append(diagnostics, d.checkSLOReferencedObjects(ctx, object, v)...)
@@ -110,6 +120,25 @@ func (d Provider) checkReferencedObjects(ctx context.Context, object *files.Obje
 		diagnostics = append(diagnostics, d.checkReportReferencedObjects(ctx, object, v)...)
 	case v1alphaRoleBinding.RoleBinding:
 		diagnostics = append(diagnostics, d.checkRoleBindingReferencedObjects(ctx, object, v)...)
+	case v1alphaUserGroup.UserGroup:
+		diagnostics = append(diagnostics, d.checkUserGroupReferencedObjects(ctx, object, v)...)
+	}
+	return diagnostics
+}
+
+func (d Provider) checkUserGroupReferencedObjects(
+	ctx context.Context,
+	object *files.ObjectNode,
+	group v1alphaUserGroup.UserGroup,
+) []messages.Diagnostic {
+	var diagnostics []messages.Diagnostic
+	for i, member := range group.Spec.Members {
+		diagnostics = append(diagnostics, d.checkUserExistence(
+			ctx,
+			object.Node,
+			fmt.Sprintf("$.spec.members[%d].id", i),
+			member.ID,
+		)...)
 	}
 	return diagnostics
 }
@@ -119,7 +148,41 @@ func (d Provider) checkRoleBindingReferencedObjects(
 	object *files.ObjectNode,
 	roleBinding v1alphaRoleBinding.RoleBinding,
 ) []messages.Diagnostic {
-	return nil
+	var diagnostics []messages.Diagnostic
+	diagnostics = append(diagnostics, d.checkRoleExistence(
+		ctx,
+		object.Node,
+		"$.spec.roleRef",
+		roleBinding.Spec.RoleRef,
+		roleBinding.Spec.ProjectRef != "",
+	)...)
+	diagnostics = append(diagnostics, d.checkObjectExistence(
+		ctx,
+		object.Node,
+		"$.spec.projectRef",
+		manifest.KindProject,
+		roleBinding.Spec.ProjectRef,
+		"",
+	)...)
+	if roleBinding.Spec.GroupRef != nil {
+		diagnostics = append(diagnostics, d.checkObjectExistence(
+			ctx,
+			object.Node,
+			"$.spec.groupRef",
+			manifest.KindUserGroup,
+			*roleBinding.Spec.GroupRef,
+			roleBinding.Spec.ProjectRef,
+		)...)
+	}
+	if roleBinding.Spec.User != nil {
+		diagnostics = append(diagnostics, d.checkUserExistence(
+			ctx,
+			object.Node,
+			"$.spec.user",
+			*roleBinding.Spec.User,
+		)...)
+	}
+	return diagnostics
 }
 
 func (d Provider) checkReportReferencedObjects(
@@ -127,7 +190,68 @@ func (d Provider) checkReportReferencedObjects(
 	object *files.ObjectNode,
 	report v1alphaReport.Report,
 ) []messages.Diagnostic {
-	return nil
+	if report.Spec.Filters == nil {
+		return nil
+	}
+	var diagnostics []messages.Diagnostic
+	for i, project := range report.Spec.Filters.Projects {
+		diagnostics = append(diagnostics, d.checkObjectExistence(
+			ctx,
+			object.Node,
+			fmt.Sprintf("$.spec.filters.projects[%d]", i),
+			manifest.KindProject,
+			project,
+			"",
+		)...)
+	}
+	if len(diagnostics) > 0 {
+		return diagnostics
+	}
+	for i, service := range report.Spec.Filters.Services {
+		diags := d.checkObjectExistence(
+			ctx,
+			object.Node,
+			fmt.Sprintf("$.spec.filters.services[%d].project", i),
+			manifest.KindProject,
+			service.Project,
+			"",
+		)
+		if len(diags) > 0 {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		diagnostics = append(diagnostics, d.checkObjectExistence(
+			ctx,
+			object.Node,
+			fmt.Sprintf("$.spec.filters.services[%d].name", i),
+			manifest.KindService,
+			service.Name,
+			service.Project,
+		)...)
+	}
+	for i, slo := range report.Spec.Filters.SLOs {
+		diags := d.checkObjectExistence(
+			ctx,
+			object.Node,
+			fmt.Sprintf("$.spec.filters.slos[%d].project", i),
+			manifest.KindProject,
+			slo.Project,
+			"",
+		)
+		if len(diags) > 0 {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		diagnostics = append(diagnostics, d.checkObjectExistence(
+			ctx,
+			object.Node,
+			fmt.Sprintf("$.spec.filters.slos[%d].name", i),
+			manifest.KindSLO,
+			slo.Name,
+			slo.Project,
+		)...)
+	}
+	return diagnostics
 }
 
 func (d Provider) checkBudgetAdjustmentReferencedObjects(
@@ -180,7 +304,7 @@ func (d Provider) checkAnnotationReferencedObjects(
 	return d.checkObjectiveExistence(
 		ctx,
 		object.Node,
-		"$.spec.objective",
+		"$.spec.objectiveName",
 		annotation.Spec.ObjectiveName,
 		annotation.Spec.Slo,
 		annotation.GetProject(),
@@ -192,11 +316,12 @@ func (d Provider) checkAlertSilenceReferencedObjects(
 	object *files.ObjectNode,
 	alertSilence v1alphaAlertSilence.AlertSilence,
 ) []messages.Diagnostic {
+	var diagnostics []messages.Diagnostic
 	alertPolicyProject := alertSilence.Spec.AlertPolicy.Project
 	if alertPolicyProject == "" {
 		alertPolicyProject = alertSilence.GetProject()
 	} else {
-		diags := d.checkObjectExistence(
+		diagnostics = d.checkObjectExistence(
 			ctx,
 			object.Node,
 			"$.spec.alertPolicy.project",
@@ -204,19 +329,18 @@ func (d Provider) checkAlertSilenceReferencedObjects(
 			alertPolicyProject,
 			"",
 		)
-		if len(diags) > 0 {
-			return diags
-		}
 	}
-	diags := d.checkObjectExistence(
-		ctx,
-		object.Node,
-		"$.spec.alertPolicy.name",
-		manifest.KindAlertPolicy,
-		alertSilence.Spec.AlertPolicy.Name,
-		alertPolicyProject,
-	)
-	diags = append(diags, d.checkObjectExistence(
+	if len(diagnostics) == 0 {
+		diagnostics = d.checkObjectExistence(
+			ctx,
+			object.Node,
+			"$.spec.alertPolicy.name",
+			manifest.KindAlertPolicy,
+			alertSilence.Spec.AlertPolicy.Name,
+			alertPolicyProject,
+		)
+	}
+	diagnostics = append(diagnostics, d.checkObjectExistence(
 		ctx,
 		object.Node,
 		"$.spec.slo",
@@ -224,7 +348,7 @@ func (d Provider) checkAlertSilenceReferencedObjects(
 		alertSilence.Spec.SLO,
 		alertSilence.GetProject(),
 	)...)
-	return diags
+	return diagnostics
 }
 
 func (d Provider) checkAlertPolicyReferencedObjects(
@@ -451,6 +575,9 @@ func (d Provider) checkObjectExistence(
 	kind manifest.Kind,
 	objectName, projectName string,
 ) []messages.Diagnostic {
+	if objectName == "" {
+		return nil
+	}
 	object, err := d.objects.GetObject(ctx, kind, objectName, projectName)
 	if err != nil {
 		slog.ErrorContext(
@@ -467,10 +594,6 @@ func (d Provider) checkObjectExistence(
 	if object != nil {
 		return nil
 	}
-	mappingValueNode := findNodeForPath(ctx, propertyPath, node.Node)
-	if mappingValueNode == nil {
-		return nil
-	}
 	var message string
 	if projectName != "" {
 		message = fmt.Sprintf("%s does not exist in Project %s", kind, projectName)
@@ -478,7 +601,7 @@ func (d Provider) checkObjectExistence(
 		message = fmt.Sprintf("%s does not exist", kind)
 	}
 	return []messages.Diagnostic{{
-		Range:    getRangeFromNode(mappingValueNode),
+		Range:    getRangeForNodePath(ctx, node, propertyPath),
 		Severity: messages.DiagnosticSeverityError,
 		Source:   ptr(config.ServerName),
 		Message:  message,
@@ -491,6 +614,9 @@ func (d Provider) checkObjectiveExistence(
 	propertyPath string,
 	objectiveName, sloName, projectName string,
 ) []messages.Diagnostic {
+	if objectiveName == "" || sloName == "" {
+		return nil
+	}
 	object, err := d.objects.GetObject(ctx, manifest.KindSLO, sloName, projectName)
 	if err != nil {
 		slog.ErrorContext(
@@ -516,12 +642,8 @@ func (d Provider) checkObjectiveExistence(
 			return nil
 		}
 	}
-	mappingValueNode := findNodeForPath(ctx, propertyPath, node.Node)
-	if mappingValueNode == nil {
-		return nil
-	}
 	return []messages.Diagnostic{{
-		Range:    getRangeFromNode(mappingValueNode),
+		Range:    getRangeForNodePath(ctx, node, propertyPath),
 		Severity: messages.DiagnosticSeverityError,
 		Source:   ptr(config.ServerName),
 		Message: fmt.Sprintf(
@@ -530,29 +652,85 @@ func (d Provider) checkObjectiveExistence(
 	}}
 }
 
-func findNodeForPath(ctx context.Context, path string, node ast.Node) ast.Node {
-	p, err := yamlpath.FromString(path)
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to get yaml path",
-			slog.String("path", path),
-			slog.Any("error", err))
+func (d Provider) checkUserExistence(
+	ctx context.Context,
+	node *yamlast.Node,
+	propertyPath string,
+	id string,
+) []messages.Diagnostic {
+	if id == "" {
 		return nil
 	}
-	filteredNode, _, err := p.FilterNode(node)
+	user, err := d.objects.GetUser(ctx, id)
 	if err != nil {
-		if !errors.Is(err, yaml.ErrNotFoundNode) {
-			slog.ErrorContext(ctx, "failed to read yaml node by path",
-				slog.Any("yamlPath", p),
-				slog.String("propPath", path),
-				slog.Any("error", err))
+		slog.ErrorContext(
+			ctx,
+			"failed to fetch user for reference check",
+			slog.Any("error", err),
+			slog.String("propPath", propertyPath),
+			slog.Any("userId", id),
+		)
+		return nil
+	}
+	if user != nil {
+		return nil
+	}
+	return []messages.Diagnostic{{
+		Range:    getRangeForNodePath(ctx, node, propertyPath),
+		Severity: messages.DiagnosticSeverityError,
+		Source:   ptr(config.ServerName),
+		Message:  "user does not exist",
+	}}
+}
+
+func (d Provider) checkRoleExistence(
+	ctx context.Context,
+	node *yamlast.Node,
+	propertyPath string,
+	roleName string,
+	isProjectRole bool,
+) []messages.Diagnostic {
+	if roleName == "" {
+		return nil
+	}
+	roles, err := d.objects.GetRoles(ctx)
+	if err != nil {
+		slog.ErrorContext(
+			ctx,
+			"failed to fetch roles for reference check",
+			slog.Any("error", err),
+			slog.String("propPath", propertyPath),
+		)
+		return nil
+	}
+	if roles != nil {
+		switch {
+		case isProjectRole &&
+			slices.ContainsFunc(roles.ProjectRoles, containsRoleFunc(roleName)):
+			return nil
+		case !isProjectRole &&
+			slices.ContainsFunc(roles.OrganizationRoles, containsRoleFunc(roleName)):
+			return nil
 		}
-		return nil
 	}
-	if filteredNode == nil {
-		slog.ErrorContext(ctx, "failed to find yaml node by path - node is nil")
-		return nil
+	var message string
+	if isProjectRole {
+		message = "project role does not exist"
+	} else {
+		message = "organization role does not exist"
 	}
-	return filteredNode
+	return []messages.Diagnostic{{
+		Range:    getRangeForNodePath(ctx, node, propertyPath),
+		Severity: messages.DiagnosticSeverityError,
+		Source:   ptr(config.ServerName),
+		Message:  message,
+	}}
+}
+
+func containsRoleFunc(roleName string) func(roles nobl9repo.Role) bool {
+	return func(role nobl9repo.Role) bool {
+		return role.Name == roleName
+	}
 }
 
 func (d Provider) checkDeprecated(object *files.SimpleObjectNode) []messages.Diagnostic {
@@ -655,6 +833,39 @@ func astErrorToDiagnostics(err error, line int) []messages.Diagnostic {
 		})
 	}
 	return diagnostics
+}
+
+func getRangeForNodePath(ctx context.Context, node *yamlast.Node, path string) messages.Range {
+	filteredNode := findNodeForPath(ctx, node.Node, path)
+	if filteredNode == nil {
+		return newPointRange(node.StartLine, 0)
+	}
+	return getRangeFromNode(filteredNode)
+}
+
+func findNodeForPath(ctx context.Context, node ast.Node, path string) ast.Node {
+	p, err := yamlpath.FromString(path)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to get yaml path",
+			slog.String("path", path),
+			slog.Any("error", err))
+		return nil
+	}
+	filteredNode, _, err := p.FilterNode(node)
+	if err != nil {
+		if !errors.Is(err, yaml.ErrNotFoundNode) {
+			slog.ErrorContext(ctx, "failed to read yaml node by path",
+				slog.Any("yamlPath", p),
+				slog.String("propPath", path),
+				slog.Any("error", err))
+		}
+		return nil
+	}
+	if filteredNode == nil {
+		slog.ErrorContext(ctx, "failed to find yaml node by path - node is nil")
+		return nil
+	}
+	return filteredNode
 }
 
 func getRangeFromNode(node ast.Node) messages.Range {

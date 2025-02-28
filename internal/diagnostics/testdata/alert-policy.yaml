@@ -1,0 +1,88 @@
+- apiVersion: n9/v1alpha
+  kind: AlertPolicy
+  metadata:
+    displayName: Remaining budget exhaustion in 3d
+    name: remaining-exhaustion-prediction-3d-1
+    project: custom
+    labels:
+      type:
+        - time-exhaustion
+  spec:
+    alertMethods:
+      - metadata:
+          name: slack
+          project: custom
+    conditions:
+      - lastsFor: 15m
+        measurement: timeToBurnBudget
+        op: lt
+        value: 72h
+    coolDown: 15m
+    description: Remaining error budget Allocation prediction
+    severity: Medium
+- apiVersion: n9/v1alpha
+  kind: AlertPolicy
+  metadata:
+    displayName: Remaining budget exhaustion in 3d
+    project: default
+    labels:
+      type:
+        - time-exhaustion
+    name: remaining-exhaustion-prediction-3d-2
+  spec:
+    alertMethods:
+      - metadata:
+          name: slack
+          project: default
+    conditions:
+      - lastsFor: 15m
+        measurement: timeToBurnBudget
+        op: lt
+        value: 72h
+    coolDown: 15m
+    description: Remaining error budget Allocation prediction
+    severity: Medium
+- apiVersion: n9/v1alpha
+  kind: AlertPolicy
+  metadata:
+    displayName: Remaining budget exhaustion in 3d
+    project: default
+    labels:
+      type:
+        - time-exhaustion
+    name: remaining-exhaustion-prediction-3d-3
+  spec:
+    alertMethods:
+      - metadata:
+          name: default
+          project: default
+    conditions:
+      - lastsFor: 15m
+        measurement: timeToBurnBudget
+        op: lt
+        value: 72h
+    coolDown: 15m
+    description: Remaining error budget Allocation prediction
+    severity: Medium
+- apiVersion: n9/v1alpha
+  kind: AlertPolicy
+  metadata:
+    displayName: Remaining budget exhaustion in 3d
+    name: remaining-exhaustion-prediction-3d-3
+    project: default
+    labels:
+      type:
+        - time-exhaustion
+  spec:
+    alertMethods:
+      - metadata:
+          name: slack
+          project: custom
+    conditions:
+      - lastsFor: 15m
+        measurement: timeToBurnBudget
+        op: lt
+        value: 72h
+    coolDown: 15m
+    description: Remaining error budget Allocation prediction
+    severity: Medium

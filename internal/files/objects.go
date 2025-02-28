@@ -18,6 +18,7 @@ import (
 	v1alphaDataExport "github.com/nobl9/nobl9-go/manifest/v1alpha/dataexport"
 	v1alphaDirect "github.com/nobl9/nobl9-go/manifest/v1alpha/direct"
 	v1alphaProject "github.com/nobl9/nobl9-go/manifest/v1alpha/project"
+	v1alphaReport "github.com/nobl9/nobl9-go/manifest/v1alpha/report"
 	v1alphaRoleBinding "github.com/nobl9/nobl9-go/manifest/v1alpha/rolebinding"
 	v1alphaService "github.com/nobl9/nobl9-go/manifest/v1alpha/service"
 	v1alphaSLO "github.com/nobl9/nobl9-go/manifest/v1alpha/slo"
@@ -79,6 +80,8 @@ func parseV1alphaObject(kind manifest.Kind, decode decodeFunc) (manifest.Object,
 		return genericParseObject[v1alphaUserGroup.UserGroup](decode)
 	case manifest.KindBudgetAdjustment:
 		return genericParseObject[v1alphaBudgetAdjustment.BudgetAdjustment](decode)
+	case manifest.KindReport:
+		return genericParseObject[v1alphaReport.Report](decode)
 	default:
 		return nil, fmt.Errorf("%s is %w", kind, manifest.ErrInvalidKind)
 	}

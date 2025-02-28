@@ -1,7 +1,8 @@
-package objectsrepo
+package nobl9repo
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -12,7 +13,7 @@ import (
 	v1objects "github.com/nobl9/nobl9-go/sdk/endpoints/objects/v1"
 )
 
-func NewObjectsRepo(client *sdk.Client) *Repo {
+func NewRepo(client *sdk.Client) *Repo {
 	return &Repo{
 		client:  client,
 		objects: make(map[manifest.Kind]map[objectProject][]objectName),
@@ -69,6 +70,61 @@ func (r *Repo) GetObject(ctx context.Context, kind manifest.Kind, name, project 
 		return nil, nil
 	}
 	return objects[0], nil
+}
+
+type usersResponse struct {
+	Users []User `json:"users"`
+}
+
+type User struct {
+	UserID string `json:"userId"`
+}
+
+func (r *Repo) GetUser(ctx context.Context, id string) (*User, error) {
+	q := url.Values{"phrase": []string{id}}
+	req, err := r.client.CreateRequest(ctx, http.MethodGet, "/usrmgmt/v2/users", nil, q, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	var users usersResponse
+	if err = json.NewDecoder(resp.Body).Decode(&users); err != nil {
+		return nil, err
+	}
+	if len(users.Users) == 1 {
+		return &users.Users[0], nil
+	}
+	return nil, nil
+}
+
+type Roles struct {
+	OrganizationRoles []Role `json:"organizationRoles"`
+	ProjectRoles      []Role `json:"projectRoles"`
+}
+
+type Role struct {
+	Name string `json:"name"`
+}
+
+func (r *Repo) GetRoles(ctx context.Context) (*Roles, error) {
+	req, err := r.client.CreateRequest(ctx, http.MethodGet, "/usrmgmt/v2/users/search-filters", nil, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	var roles Roles
+	if err = json.NewDecoder(resp.Body).Decode(&roles); err != nil {
+		return nil, err
+	}
+	return &roles, nil
 }
 
 func (r *Repo) init(ctx context.Context) {

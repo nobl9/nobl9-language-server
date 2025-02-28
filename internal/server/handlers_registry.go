@@ -10,7 +10,7 @@ import (
 	"github.com/nobl9/nobl9-language-server/internal/files"
 	"github.com/nobl9/nobl9-language-server/internal/hover"
 	"github.com/nobl9/nobl9-language-server/internal/messages"
-	"github.com/nobl9/nobl9-language-server/internal/objectsrepo"
+	"github.com/nobl9/nobl9-language-server/internal/nobl9repo"
 	"github.com/nobl9/nobl9-language-server/internal/sdkdocs"
 )
 
@@ -28,7 +28,7 @@ func newHandlersRegistry(
 	notifier *rpcConnectionNotifier,
 ) (*handlersRegistry, error) {
 	// Common dependencies.
-	objectsRepo := objectsrepo.NewObjectsRepo(sdkClient)
+	objectsRepo := nobl9repo.NewRepo(sdkClient)
 	sdkDocs, err := sdkdocs.New()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to setup SDK docs provider")
