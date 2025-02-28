@@ -1,7 +1,9 @@
 package diagnostics
 
 import (
+	"cmp"
 	"context"
+	"slices"
 
 	"github.com/nobl9/nobl9-language-server/internal/files"
 	"github.com/nobl9/nobl9-language-server/internal/messages"
@@ -36,6 +38,12 @@ func (h *Handler) Handle(ctx context.Context, item messages.TextDocumentItem) (a
 		Version: item.Version,
 	}
 	diags := h.diagnostics.DiagnoseFile(ctx, file)
+	slices.SortFunc(diags, func(d1, d2 messages.Diagnostic) int {
+		return cmp.Or(
+			cmp.Compare(d1.Range.Start.Line, d2.Range.Start.Line),
+			cmp.Compare(d1.Range.Start.Character, d2.Range.Start.Character),
+		)
+	})
 	// We need to send empty diagnostics to clear the previous ones.
 	// Otherwise, once an error occurs it will never be cleared even if the user fixes the issue.
 	if len(diags) == 0 {

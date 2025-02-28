@@ -7,6 +7,7 @@ import (
 
 	"github.com/nobl9/nobl9-go/manifest"
 	"github.com/nobl9/nobl9-go/manifest/v1alpha"
+	v1alphaSLO "github.com/nobl9/nobl9-go/manifest/v1alpha/slo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -148,6 +149,15 @@ func TestHandler_Handle(t *testing.T) {
 						},
 					},
 					{
+						Message:  "Agent does not exist in Project datadog",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 11, Character: 12},
+							End:   messages.Position{Line: 11, Character: 19},
+						},
+					},
+					{
 						Message:  "Service does not exist in Project datadog",
 						Severity: messages.DiagnosticSeverityError,
 						Source:   ptr(config.ServerName),
@@ -166,12 +176,48 @@ func TestHandler_Handle(t *testing.T) {
 						},
 					},
 					{
-						Message:  "Agent does not exist in Project datadog",
+						Message:  "Project does not exist",
 						Severity: messages.DiagnosticSeverityError,
 						Source:   ptr(config.ServerName),
 						Range: messages.Range{
-							Start: messages.Position{Line: 11, Character: 12},
-							End:   messages.Position{Line: 11, Character: 19},
+							Start: messages.Position{Line: 60, Character: 23},
+							End:   messages.Position{Line: 60, Character: 26},
+						},
+					},
+					{
+						Message:  "Project does not exist",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 77, Character: 19},
+							End:   messages.Position{Line: 77, Character: 22},
+						},
+					},
+					{
+						Message:  "SLO does not exist in Project default",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 102, Character: 19},
+							End:   messages.Position{Line: 102, Character: 22},
+						},
+					},
+					{
+						Message:  "AlertMethod does not exist in Project default",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 116, Character: 16},
+							End:   messages.Position{Line: 116, Character: 34},
+						},
+					},
+					{
+						Message:  "objective does not exist in SLO default and Project default",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 143, Character: 25},
+							End:   messages.Position{Line: 143, Character: 28},
 						},
 					},
 				},
@@ -255,10 +301,20 @@ type objectsProviderMock struct{}
 
 func (o objectsProviderMock) GetObject(
 	_ context.Context,
-	_ manifest.Kind,
+	kind manifest.Kind,
 	name, project string,
 ) (manifest.Object, error) {
-	if name == "default" || project == "default" {
+	if name == "default" || (name == "" && project == "default") {
+		if kind == manifest.KindSLO {
+			return v1alphaSLO.New(
+				v1alphaSLO.Metadata{},
+				v1alphaSLO.Spec{
+					Objectives: []v1alphaSLO.Objective{
+						{ObjectiveBase: v1alphaSLO.ObjectiveBase{Name: "default"}},
+					},
+				},
+			), nil
+		}
 		return v1alpha.GenericObject{}, nil
 	}
 	return nil, nil

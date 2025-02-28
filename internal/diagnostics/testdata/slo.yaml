@@ -30,3 +30,159 @@ spec:
       count: 1
       isRolling: false
       unit: Day
+  anomalyConfig:
+    noData:
+      alertMethods:
+        - name: default
+          project: default
+---
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-calendar-timeslices-composite
+  name: datadog-calendar-timeslices-composite-1
+  project: default
+spec:
+  budgetingMethod: Timeslices
+  description: ""
+  service: default
+  alertPolicies: [default]
+  objectives:
+    - target: 0.7
+      op: lte
+      displayName: doable
+      timeSliceTarget: 0.7
+      value: 0.2
+      name: objective-1
+      composite:
+        maxDelay: 3m
+        components:
+          objectives:
+            - project: foo
+              slo: bar
+              objective: baz
+              whenDelayed: CountAsGood
+              weight: 0.5
+              
+  timeWindows:
+    - calendar:
+        startTime: "2020-11-14 12:30:00"
+        timeZone: Etc/UTC
+      count: 1
+      isRolling: false
+      unit: Day
+  anomalyConfig:
+    noData:
+      alertMethods:
+        - name: slack-notification
+          project: foo
+---
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-calendar-timeslices-composite
+  name: datadog-calendar-timeslices-composite-2
+  project: default
+spec:
+  budgetingMethod: Timeslices
+  description: ""
+  service: default
+  alertPolicies: [default]
+  objectives:
+    - target: 0.7
+      op: lte
+      displayName: doable
+      timeSliceTarget: 0.7
+      value: 0.2
+      name: objective-1
+      composite:
+        maxDelay: 3m
+        components:
+          objectives:
+            - project: default
+              slo: bar
+              objective: baz
+              whenDelayed: CountAsGood
+              weight: 0.5
+  timeWindows:
+    - calendar:
+        startTime: "2020-11-14 12:30:00"
+        timeZone: Etc/UTC
+      count: 1
+      isRolling: false
+      unit: Day
+  anomalyConfig:
+    noData:
+      alertMethods:
+        - name: slack-notification
+          project: default
+---
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-calendar-timeslices-composite
+  name: datadog-calendar-timeslices-composite-3
+  project: default
+spec:
+  budgetingMethod: Timeslices
+  description: ""
+  service: default
+  alertPolicies: [default]
+  objectives:
+    - target: 0.7
+      op: lte
+      displayName: doable
+      timeSliceTarget: 0.7
+      value: 0.2
+      name: objective-1
+      composite:
+        maxDelay: 3m
+        components:
+          objectives:
+            - project: default
+              slo: default
+              objective: baz
+              whenDelayed: CountAsGood
+              weight: 0.5
+  timeWindows:
+    - calendar:
+        startTime: "2020-11-14 12:30:00"
+        timeZone: Etc/UTC
+      count: 1
+      isRolling: false
+      unit: Day
+---
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: datadog-calendar-timeslices-composite
+  name: datadog-calendar-timeslices-composite-4
+  project: default
+spec:
+  budgetingMethod: Timeslices
+  description: ""
+  service: default
+  alertPolicies: [default]
+  objectives:
+    - target: 0.7
+      op: lte
+      displayName: doable
+      timeSliceTarget: 0.7
+      value: 0.2
+      name: objective-1
+      composite:
+        maxDelay: 3m
+        components:
+          objectives:
+            - project: default
+              slo: default
+              objective: default
+              whenDelayed: CountAsGood
+              weight: 0.5
+  timeWindows:
+    - calendar:
+        startTime: "2020-11-14 12:30:00"
+        timeZone: Etc/UTC
+      count: 1
+      isRolling: false
+      unit: Day
