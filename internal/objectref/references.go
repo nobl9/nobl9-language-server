@@ -1,206 +1,229 @@
 package objectref
 
 import (
+	"fmt"
+	"slices"
+	"strconv"
+
 	"github.com/nobl9/nobl9-go/manifest"
 
 	"github.com/nobl9/nobl9-language-server/internal/yamlpath"
 )
 
-func Find(kind manifest.Kind, path string) *Reference {
+func Get(kind manifest.Kind, path string) *Reference {
 	refs, ok := objectReferences[kind]
 	if !ok {
 		return nil
 	}
-	for _, ref := range refs {
-		if yamlpath.Match(ref.Path, path) {
-			return ref
-		}
+	normalized := yamlpath.NormalizePath(path)
+	ref, ok := refs[normalized]
+	if !ok {
+		return nil
 	}
-	return nil
-}
-
-func Get(kind manifest.Kind) []*Reference {
-	refs, _ := objectReferences[kind]
-	return refs
+	result := &Reference{
+		Kind: ref.Kind,
+		Path: ref.Path,
+	}
+	if ref.ProjectPath != "" {
+		result.ProjectPath = calculateReferencedPath(path, ref.ProjectPath)
+	}
+	if ref.SLOPath != "" {
+		result.SLOPath = calculateReferencedPath(path, ref.SLOPath)
+	}
+	return result
 }
 
 type Reference struct {
+	Kind manifest.Kind
+	// TODO: better names!
 	Path        string
 	ProjectPath string
-	Kind        manifest.Kind
-	AppliesTo   []manifest.Kind
+	SLOPath     string
+
+	appliesTo []manifest.Kind
 }
 
-var objectReferences = func() map[manifest.Kind][]*Reference {
+func (r Reference) FallbackProjectPath(kind manifest.Kind) string {
+	if r.Path != "$.metadata.project" && slices.Contains(projectScopedKinds, kind) {
+		return "$.metadata.project"
+	}
+	return ""
+}
+
+var objectReferences = func() map[manifest.Kind]map[string]*Reference {
 	references := []Reference{
 		{
 			Path:      "$.metadata.project",
 			Kind:      manifest.KindProject,
-			AppliesTo: projectScopedKinds,
+			appliesTo: projectScopedKinds,
 		},
-		// Only auto completion.
-		//{
-		//	Path:      "$.metadata.labels",
-		//	AppliesTo: labelsSupportingKinds,
-		//},
 		{
-			Path:        "$.spec.alertMethods[*].name",
-			ProjectPath: "$.spec.alertMethods[*].project",
+			Path:        "$.spec.alertMethods[*].metadata.name",
+			ProjectPath: "$.spec.alertMethods[%d].metadata.project",
 			Kind:        manifest.KindAlertMethod,
-			AppliesTo:   []manifest.Kind{manifest.KindAlertPolicy},
+			appliesTo:   []manifest.Kind{manifest.KindAlertPolicy},
 		},
 		{
-			Path:      "$.spec.alertMethods[*].project",
-			Kind:      manifest.KindAlertMethod,
-			AppliesTo: []manifest.Kind{manifest.KindAlertPolicy},
+			Path:      "$.spec.alertMethods[*].metadata.project",
+			Kind:      manifest.KindProject,
+			appliesTo: []manifest.Kind{manifest.KindAlertPolicy},
 		},
 		{
 			Path:        "$.spec.slo",
 			ProjectPath: "$.metadata.project",
 			Kind:        manifest.KindSLO,
-			AppliesTo:   []manifest.Kind{manifest.KindAlertSilence},
+			appliesTo:   []manifest.Kind{manifest.KindAlertSilence},
 		},
 		{
 			Path:        "$.spec.alertPolicy.name",
 			ProjectPath: "$.spec.alertPolicy.project",
 			Kind:        manifest.KindAlertPolicy,
-			AppliesTo:   []manifest.Kind{manifest.KindAlertSilence},
+			appliesTo:   []manifest.Kind{manifest.KindAlertSilence},
 		},
 		{
 			Path:      "$.spec.alertPolicy.project",
 			Kind:      manifest.KindProject,
-			AppliesTo: []manifest.Kind{manifest.KindAlertSilence},
+			appliesTo: []manifest.Kind{manifest.KindAlertSilence},
 		},
 		{
 			Path:        "$.spec.slo",
 			ProjectPath: "$.metadata.project",
 			Kind:        manifest.KindSLO,
-			AppliesTo:   []manifest.Kind{manifest.KindAnnotation},
+			appliesTo:   []manifest.Kind{manifest.KindAnnotation},
 		},
 		{
-			Path:      "$.spec.objectiveName",
-			AppliesTo: []manifest.Kind{manifest.KindAnnotation},
+			Path:        "$.spec.objectiveName",
+			SLOPath:     "$.spec.slo",
+			ProjectPath: "$.metadata.project",
+			appliesTo:   []manifest.Kind{manifest.KindAnnotation},
 		},
 		{
-			Path:        "$.spec.filters[*].slos[*].name",
-			ProjectPath: "$.spec.filters[*].slos[*].project",
+			Path:        "$.spec.filters.slos[*].name",
+			ProjectPath: "$.spec.filters.slos[%d].project",
 			Kind:        manifest.KindSLO,
-			AppliesTo:   []manifest.Kind{manifest.KindBudgetAdjustment},
+			appliesTo:   []manifest.Kind{manifest.KindBudgetAdjustment},
 		},
 		{
-			Path:      "$.spec.filters[*].slos[*].project",
+			Path:      "$.spec.filters.slos[*].project",
 			Kind:      manifest.KindSLO,
-			AppliesTo: []manifest.Kind{manifest.KindBudgetAdjustment},
+			appliesTo: []manifest.Kind{manifest.KindBudgetAdjustment},
 		},
 		{
 			Path:      "$.spec.filters.projects[*]",
 			Kind:      manifest.KindProject,
-			AppliesTo: []manifest.Kind{manifest.KindReport},
+			appliesTo: []manifest.Kind{manifest.KindReport},
 		},
 		{
 			Path:        "$.spec.filters.services[*].name",
-			ProjectPath: "$.spec.filters.services[*].project",
+			ProjectPath: "$.spec.filters.services[%d].project",
 			Kind:        manifest.KindService,
-			AppliesTo:   []manifest.Kind{manifest.KindReport},
+			appliesTo:   []manifest.Kind{manifest.KindReport},
 		},
 		{
 			Path:      "$.spec.filters.services[*].project",
 			Kind:      manifest.KindProject,
-			AppliesTo: []manifest.Kind{manifest.KindReport},
+			appliesTo: []manifest.Kind{manifest.KindReport},
 		},
 		{
 			Path:        "$.spec.filters.slos[*].name",
-			ProjectPath: "$.spec.filters.slos[*].project",
+			ProjectPath: "$.spec.filters.slos[%d].project",
 			Kind:        manifest.KindSLO,
-			AppliesTo:   []manifest.Kind{manifest.KindReport},
+			appliesTo:   []manifest.Kind{manifest.KindReport},
 		},
 		{
 			Path:      "$.spec.filters.slos[*].project",
 			Kind:      manifest.KindProject,
-			AppliesTo: []manifest.Kind{manifest.KindReport},
+			appliesTo: []manifest.Kind{manifest.KindReport},
 		},
-		//{
-		//	Path:      "$.spec.filters.labels",
-		//	AppliesTo: []manifest.Kind{manifest.KindReport},
-		//},
 		{
 			Path:      "$.spec.user",
-			AppliesTo: []manifest.Kind{manifest.KindRoleBinding},
+			appliesTo: []manifest.Kind{manifest.KindRoleBinding},
 		},
 		{
 			Path:      "$.spec.groupRef",
 			Kind:      manifest.KindUserGroup,
-			AppliesTo: []manifest.Kind{manifest.KindRoleBinding},
+			appliesTo: []manifest.Kind{manifest.KindRoleBinding},
 		},
 		{
 			Path:      "$.spec.roleRef",
-			AppliesTo: []manifest.Kind{manifest.KindRoleBinding},
+			appliesTo: []manifest.Kind{manifest.KindRoleBinding},
 		},
 		{
 			Path:      "$.spec.projectRef",
 			Kind:      manifest.KindProject,
-			AppliesTo: []manifest.Kind{manifest.KindRoleBinding},
+			appliesTo: []manifest.Kind{manifest.KindRoleBinding},
 		},
 		{
 			Path:      "$.spec.members[*].id",
-			AppliesTo: []manifest.Kind{manifest.KindUserGroup},
+			appliesTo: []manifest.Kind{manifest.KindUserGroup},
 		},
 		{
 			Path:        "$.spec.service",
 			ProjectPath: "$.metadata.project",
 			Kind:        manifest.KindService,
-			AppliesTo:   []manifest.Kind{manifest.KindSLO},
+			appliesTo:   []manifest.Kind{manifest.KindSLO},
 		},
 		{
-			Path:      "$.spec.indicator.metricSource.name",
-			AppliesTo: []manifest.Kind{manifest.KindSLO},
+			Path:        "$.spec.indicator.metricSource.name",
+			ProjectPath: "$.spec.indicator.metricSource.project",
+			appliesTo:   []manifest.Kind{manifest.KindSLO},
 		},
 		{
 			Path:      "$.spec.indicator.metricSource.project",
 			Kind:      manifest.KindProject,
-			AppliesTo: []manifest.Kind{manifest.KindSLO},
+			appliesTo: []manifest.Kind{manifest.KindSLO},
 		},
 		{
 			Path:        "$.spec.alertPolicies[*]",
 			ProjectPath: "$.metadata.project",
 			Kind:        manifest.KindAlertPolicy,
-			AppliesTo:   []manifest.Kind{manifest.KindSLO},
+			appliesTo:   []manifest.Kind{manifest.KindSLO},
 		},
 		{
 			Path:      "$.spec.objectives[*].composite.components.objectives[*].project",
 			Kind:      manifest.KindProject,
-			AppliesTo: []manifest.Kind{manifest.KindSLO},
+			appliesTo: []manifest.Kind{manifest.KindSLO},
 		},
 		{
 			Path:        "$.spec.objectives[*].composite.components.objectives[*].slo",
-			ProjectPath: "$.spec.objectives[*].composite.components.objectives[*].project",
+			ProjectPath: "$.spec.objectives[%d].composite.components.objectives[%d].project",
 			Kind:        manifest.KindSLO,
-			AppliesTo:   []manifest.Kind{manifest.KindSLO},
+			appliesTo:   []manifest.Kind{manifest.KindSLO},
 		},
 		{
-			Path:      "$.spec.objectives[*].composite.components.objectives[*].objective",
-			AppliesTo: []manifest.Kind{manifest.KindSLO},
+			Path:        "$.spec.objectives[*].composite.components.objectives[*].objective",
+			SLOPath:     "$.spec.objectives[%d].composite.components.objectives[%d].slo",
+			ProjectPath: "$.spec.objectives[%d].composite.components.objectives[%d].project",
+			Kind:        manifest.KindSLO,
+			appliesTo:   []manifest.Kind{manifest.KindSLO},
 		},
 		{
 			Path:        "$.spec.anomalyConfig.noData.alertMethods[*].name",
-			ProjectPath: "$.spec.anomalyConfig.noData.alertMethods[*].project",
+			ProjectPath: "$.spec.anomalyConfig.noData.alertMethods[%d].project",
 			Kind:        manifest.KindAlertMethod,
-			AppliesTo:   []manifest.Kind{manifest.KindSLO},
+			appliesTo:   []manifest.Kind{manifest.KindSLO},
 		},
 		{
 			Path:      "$.spec.anomalyConfig.noData.alertMethods[*].project",
 			Kind:      manifest.KindProject,
-			AppliesTo: []manifest.Kind{manifest.KindSLO},
+			appliesTo: []manifest.Kind{manifest.KindSLO},
 		},
 	}
-	m := make(map[manifest.Kind][]*Reference)
+	m := make(map[manifest.Kind]map[string]*Reference)
 	for _, r := range references {
-		for _, kind := range r.AppliesTo {
-			m[kind] = append(m[kind], &r)
+		for _, kind := range r.appliesTo {
+			if _, ok := m[kind]; !ok {
+				m[kind] = make(map[string]*Reference)
+			}
+			m[kind][r.Path] = &r
 		}
 	}
 	return m
 }()
+
+func IsProjectScoped(kind manifest.Kind) bool {
+	return slices.Contains(projectScopedKinds, kind)
+}
 
 // TODO: generate that from docs.
 var projectScopedKinds = []manifest.Kind{
@@ -209,17 +232,33 @@ var projectScopedKinds = []manifest.Kind{
 	manifest.KindAgent,
 	manifest.KindAlertPolicy,
 	manifest.KindAlertSilence,
-	manifest.KindProject,
 	manifest.KindAlertMethod,
 	manifest.KindDirect,
 	manifest.KindDataExport,
 	manifest.KindAnnotation,
 }
 
-// TODO: generate that from docs.
-var labelsSupportingKinds = []manifest.Kind{
-	manifest.KindAlertPolicy,
-	manifest.KindProject,
-	manifest.KindService,
-	manifest.KindSLO,
+func calculateReferencedPath(basePath, refPath string) string {
+	var (
+		arrStart bool
+		nStr     string
+	)
+	indexes := make([]any, 0)
+	for _, ch := range basePath {
+		switch {
+		case ch == '[':
+			arrStart = true
+		case ch == ']':
+			arrStart = false
+			n, _ := strconv.Atoi(nStr)
+			indexes = append(indexes, n)
+			nStr = ""
+		case arrStart:
+			nStr += string(ch)
+		}
+	}
+	if len(indexes) == 0 {
+		return refPath
+	}
+	return fmt.Sprintf(refPath, indexes...)
 }

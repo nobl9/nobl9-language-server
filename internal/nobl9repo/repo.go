@@ -73,15 +73,29 @@ func (r *Repo) GetObject(ctx context.Context, kind manifest.Kind, name, project 
 }
 
 type usersResponse struct {
-	Users []User `json:"users"`
+	Users []*User `json:"users"`
 }
 
 type User struct {
-	UserID string `json:"userId"`
+	UserID    string `json:"userId"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Email     string `json:"email"`
 }
 
 func (r *Repo) GetUser(ctx context.Context, id string) (*User, error) {
-	q := url.Values{"phrase": []string{id}}
+	users, err := r.GetUsers(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if len(users) == 1 {
+		return users[0], nil
+	}
+	return nil, nil
+}
+
+func (r *Repo) GetUsers(ctx context.Context, phrase string) ([]*User, error) {
+	q := url.Values{"phrase": []string{phrase}}
 	req, err := r.client.CreateRequest(ctx, http.MethodGet, "/usrmgmt/v2/users", nil, q, nil)
 	if err != nil {
 		return nil, err
@@ -95,10 +109,7 @@ func (r *Repo) GetUser(ctx context.Context, id string) (*User, error) {
 	if err = json.NewDecoder(resp.Body).Decode(&users); err != nil {
 		return nil, err
 	}
-	if len(users.Users) == 1 {
-		return &users.Users[0], nil
-	}
-	return nil, nil
+	return users.Users, nil
 }
 
 type Roles struct {

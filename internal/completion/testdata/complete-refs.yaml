@@ -1,0 +1,149 @@
+apiVersion: n9/v1alpha
+kind: Service
+metadata:
+  name: datadog
+  project: s
+spec:
+  description: my test is here
+---
+apiVersion: n9/v1alpha
+kind: AlertPolicy
+metadata:
+  displayName: Remaining budget exhaustion in 3d
+  project: default
+  labels:
+    type:
+      - time-exhaustion
+  name: remaining-exhaustion-prediction-3d-1
+spec:
+  alertMethods:
+    - metadata:
+        name: default
+        project: default
+  conditions:
+    - lastsFor: 15m
+      measurement: timeToBurnBudget
+      op: lt
+      value: 72h
+  coolDown: 15m
+  description: Remaining error budget Allocation prediction
+  severity: Medium
+---
+apiVersion: n9/v1alpha
+kind: AlertPolicy
+metadata:
+  displayName: Remaining budget exhaustion in 3d
+  project: default
+  labels:
+    type:
+      - time-exhaustion
+  name: remaining-exhaustion-prediction-3d-2
+spec:
+  alertMethods:
+    - metadata:
+        name: default
+  conditions:
+    - lastsFor: 15m
+      measurement: timeToBurnBudget
+      op: lt
+      value: 72h
+  coolDown: 15m
+  description: Remaining error budget Allocation prediction
+  severity: Medium
+---
+apiVersion: n9/v1alpha
+kind: AlertSilence
+metadata:
+  name: 5661613e-0e3d-11ed-861d-0242ac120456
+  project: default
+spec:
+  description: Detected issue with InfluxDB
+  slo: rolling-occurrences-threshold
+  alertPolicy:
+    name: burning-fast
+    project: default
+  period:
+    duration: 1h
+---
+apiVersion: n9/v1alpha
+kind: AlertSilence
+metadata:
+  name: 5661613e-0e3d-11ed-861d-0242ac120456
+  project: default
+spec:
+  description: Detected issue with InfluxDB
+  slo: rolling-occurrences-threshold
+  alertPolicy:
+    name: burning-fast
+  period:
+    duration: 1h
+---
+apiVersion: n9/v1alpha
+kind: Annotation
+metadata:
+  name: annotation-test-2
+  project: default
+spec:
+  slo: default
+  objectiveName: custom
+  description: test range annotation
+  startTime: 2006-01-02T17:20:05Z
+  endTime: 2006-01-02T17:30:05Z
+---
+apiVersion: n9/v1alpha
+kind: BudgetAdjustment
+metadata:
+  name: monthly-deployment-adjustment
+  displayName: Monthly deployment adjustment
+spec:
+  description: Adjustment for deployment happening monthly on the first Tuesday of each month for 1 hour
+  firstEventStart: 2024-01-01T12:00:00Z
+  duration: 1h
+  rrule: FREQ=MONTHLY;INTERVAL=1;BYDAY=1TU
+  filters:
+    slos:
+      - name: default
+      - name: api-server-uptime
+        project: custom
+---
+apiVersion: n9/v1alpha
+kind: Report
+metadata:
+  name: slo-history-report
+  displayName: SLO History
+spec:
+  shared: true
+  filters:
+    projects:
+      - default
+    services:
+      - name: service-1
+      - name: service-2
+        project: default
+    slos:
+      - name: slo-1
+      - name: slo-2
+        project: default
+  sloHistory:
+    timeFrame:
+      rolling:
+        unit: Week
+        count: 2
+      timeZone: Europe/Warsaw
+---
+- apiVersion: n9/v1alpha
+  kind: RoleBinding
+  metadata:
+    name: default-project-binding-2
+  spec:
+    user: default
+    roleRef: project
+    projectRef: default
+- apiVersion: n9/v1alpha
+  kind: RoleBinding
+  metadata:
+    name: default-group-project-binding-1
+  spec:
+    groupRef: default
+    roleRef: organ
+---

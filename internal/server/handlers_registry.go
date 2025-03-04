@@ -38,11 +38,10 @@ func newHandlersRegistry(
 	diagnosticsProvider := diagnostics.NewProvider(sdkDocs, objectsRepo)
 	diagnosticsHandler := diagnostics.NewHandler(filesystem, diagnosticsProvider)
 	// Completion.
-	objectsRefProvider := completion.NewObjectsRefProvider(objectsRepo)
 	completionHandler := completion.NewHandler(filesystem,
 		completion.NewValuesCompletionProvider(sdkDocs),
 		completion.NewKeysCompletionProvider(sdkDocs),
-		completion.NewReferencesCompletionProvider(objectsRefProvider),
+		completion.NewReferencesCompletionProvider(objectsRepo),
 		completion.NewSnippetsProvider(),
 	)
 	// Hover.

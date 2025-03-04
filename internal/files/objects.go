@@ -26,10 +26,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-func ParseObject(ctx context.Context, object *ObjectNode) (manifest.Object, error) {
+func parseObject(ctx context.Context, object *ObjectNode) (manifest.Object, error) {
 	var buf bytes.Buffer
 	dec := yaml.NewDecoder(&buf, yaml.Strict())
-	manifestObject, err := parseObject(object.Version, object.Kind, func(v any) error {
+	manifestObject, err := decodeObject(object.Version, object.Kind, func(v any) error {
 		return dec.DecodeFromNodeContext(ctx, object.Node.Node, v)
 	})
 	if err != nil {
@@ -40,16 +40,16 @@ func ParseObject(ctx context.Context, object *ObjectNode) (manifest.Object, erro
 
 type decodeFunc func(v any) error
 
-func parseObject(version manifest.Version, kind manifest.Kind, decode decodeFunc) (manifest.Object, error) {
+func decodeObject(version manifest.Version, kind manifest.Kind, decode decodeFunc) (manifest.Object, error) {
 	switch version {
 	case manifest.VersionV1alpha:
-		return parseV1alphaObject(kind, decode)
+		return decodeV1alphaObject(kind, decode)
 	default:
 		return nil, fmt.Errorf("%s is %w", version, manifest.ErrInvalidVersion)
 	}
 }
 
-func parseV1alphaObject(kind manifest.Kind, decode decodeFunc) (manifest.Object, error) {
+func decodeV1alphaObject(kind manifest.Kind, decode decodeFunc) (manifest.Object, error) {
 	//exhaustive:enforce
 	switch kind {
 	case manifest.KindService:

@@ -73,7 +73,8 @@ func TestLSP(t *testing.T) {
 					Capabilities: messages.ServerCapabilities{
 						TextDocumentSync: messages.TextDocumentSyncKindFull,
 						CompletionProvider: &messages.CompletionProvider{
-							ResolveProvider: false,
+							ResolveProvider:   false,
+							TriggerCharacters: []string{":"},
 						},
 						HoverProvider:      true,
 						CodeActionProvider: true,
@@ -259,22 +260,6 @@ func TestLSP(t *testing.T) {
 						Version: 1,
 						Diagnostics: []messages.Diagnostic{
 							{
-								Message: "string must match regular expression: " +
-									"'^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$' (e.g. 'my-name', '123-abc')",
-								Severity: messages.DiagnosticSeverityError,
-								Source:   ptr("nobl9-language-server"),
-								Range: messages.Range{
-									Start: messages.Position{
-										Line:      3,
-										Character: 8,
-									},
-									End: messages.Position{
-										Line:      3,
-										Character: 23,
-									},
-								},
-							},
-							{
 								Message:  "metadata.project: property is required but was empty",
 								Severity: messages.DiagnosticSeverityError,
 								Source:   ptr("nobl9-language-server"),
@@ -286,6 +271,25 @@ func TestLSP(t *testing.T) {
 									End: messages.Position{
 										Line:      2,
 										Character: 8,
+									},
+								},
+							},
+							{
+								Message: "string must match regular expression: " +
+									"'^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$' (e.g. 'my-name', '123-abc');" +
+									" an RFC-1123 compliant label name must consist of lower case" +
+									" alphanumeric characters or '-', and must start and end with" +
+									" an alphanumeric character",
+								Severity: messages.DiagnosticSeverityError,
+								Source:   ptr("nobl9-language-server"),
+								Range: messages.Range{
+									Start: messages.Position{
+										Line:      3,
+										Character: 8,
+									},
+									End: messages.Position{
+										Line:      3,
+										Character: 23,
 									},
 								},
 							},

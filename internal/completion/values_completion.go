@@ -1,6 +1,8 @@
 package completion
 
 import (
+	"context"
+
 	"github.com/nobl9/nobl9-go/manifest"
 
 	"github.com/nobl9/nobl9-language-server/internal/files"
@@ -22,6 +24,7 @@ func (p ValuesCompletionProvider) getType() completionProviderType {
 }
 
 func (p ValuesCompletionProvider) Complete(
+	_ context.Context,
 	_ messages.CompletionParams,
 	_ files.SimpleObjectFile,
 	node *files.SimpleObjectNode,

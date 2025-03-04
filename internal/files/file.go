@@ -5,20 +5,16 @@ import (
 	"strings"
 
 	"github.com/nobl9/nobl9-go/manifest"
+	"github.com/pkg/errors"
 
 	"github.com/nobl9/nobl9-language-server/internal/yamlast"
 	"github.com/nobl9/nobl9-language-server/internal/yamlastsimple"
 )
 
-func NewFile(ctx context.Context, uri fileURI, content string) (*File, error) {
-	file := &File{
-		URI:     uri,
-		Content: content,
-	}
-	if err := file.Update(ctx, content); err != nil {
-		return nil, err
-	}
-	return file, nil
+func NewFile(ctx context.Context, uri fileURI, version int, content string) *File {
+	file := &File{URI: uri}
+	file.Update(ctx, version, content)
+	return file
 }
 
 // File is a virtual representation of an [os.File].
@@ -64,47 +60,35 @@ func (v *File) FindObject(line int) *ObjectNode {
 	return nil
 }
 
-func (v *File) UpdateVersion(version int) {
-	v.Version = version
-}
-
-func (v *File) Update(ctx context.Context, content string) error {
+func (v *File) Update(ctx context.Context, version int, content string) {
+	// If version has not changed, there's no need to update the file.
+	if version == v.Version {
+		return
+	}
+	if version != 0 {
+		v.Version = version
+	}
 	v.Content = content
 
-	simpleAST := yamlastsimple.ParseFile(content)
-	v.SimpleAST = make([]*SimpleObjectNode, 0, len(simpleAST.Docs))
-	for _, doc := range simpleAST.Docs {
-		object := &SimpleObjectNode{Doc: doc}
-		for _, line := range doc.Lines {
-			dotIndex := strings.Index(line.Path, ".")
-			if dotIndex == -1 {
-				continue
-			}
-			if line.Path[dotIndex+1:] == "kind" {
-				object.Kind, _ = manifest.ParseKind(line.GetMapValue())
-			}
-			if line.Path[dotIndex+1:] == "apiVersion" {
-				object.Version, _ = manifest.ParseVersion(line.GetMapValue())
-			}
-		}
-		v.SimpleAST = append(v.SimpleAST, object)
+	v.SimpleAST, v.Err = parseSimpleObjectFile(content)
+	if v.Err != nil {
+		return
 	}
 
 	fileAST, err := yamlast.Parse(content)
 	v.Err = err
 	if err != nil {
-		return nil // nolint: nilerr
+		return
 	}
 	v.Objects = make([]*ObjectNode, 0, len(fileAST.Nodes))
 	for _, node := range fileAST.Nodes {
 		object := &ObjectNode{Node: node}
 		object.Version, object.Kind, object.Err = inferObjectVersionAndKind(node.Node)
 		if object.Err == nil {
-			object.Object, object.Err = ParseObject(ctx, object)
+			object.Object, object.Err = parseObject(ctx, object)
 		}
 		v.Objects = append(v.Objects, object)
 	}
-	return nil
 }
 
 func (v *File) copy() *File {
@@ -130,4 +114,73 @@ func (o *ObjectNode) copy() *ObjectNode {
 		Node:    o.Node,
 		Err:     o.Err,
 	}
+}
+
+func parseSimpleObjectFile(content string) (SimpleObjectFile, error) {
+	simpleAST := yamlastsimple.ParseFile(content)
+	file := make(SimpleObjectFile, 0, len(simpleAST.Docs))
+	for _, doc := range simpleAST.Docs {
+		switch {
+		case len(doc.Lines) == 0:
+			continue
+		case strings.HasPrefix(doc.Lines[0].Path, "$["):
+			docs, err := splitListDocument(doc)
+			if err != nil {
+				return nil, err
+			}
+			for _, d := range docs {
+				file = append(file, parseSimpleObjectNode(d))
+			}
+		default:
+			file = append(file, parseSimpleObjectNode(doc))
+		}
+	}
+	return file, nil
+}
+
+func parseSimpleObjectNode(doc *yamlastsimple.Document) *SimpleObjectNode {
+	object := &SimpleObjectNode{Doc: doc}
+	for _, line := range doc.Lines {
+		dotIndex := strings.Index(line.Path, ".")
+		if dotIndex == -1 {
+			continue
+		}
+		if line.Path[dotIndex+1:] == "kind" {
+			object.Kind, _ = manifest.ParseKind(line.GetMapValue())
+		}
+		if line.Path[dotIndex+1:] == "apiVersion" {
+			object.Version, _ = manifest.ParseVersion(line.GetMapValue())
+		}
+	}
+	return object
+}
+
+func splitListDocument(doc *yamlastsimple.Document) ([]*yamlastsimple.Document, error) {
+	var listPrefix string
+	result := make([]*yamlastsimple.Document, 0)
+	currentDoc := &yamlastsimple.Document{Offset: doc.Offset}
+	for _, line := range doc.Lines {
+		// At least $[\d+] is expected, otherwise we might be dealing with an empty line.
+		if len(line.Path) < 4 {
+			currentDoc.Lines = append(currentDoc.Lines, line)
+			continue
+		}
+		closingBracketIdx := strings.Index(line.Path, "]")
+		if closingBracketIdx == -1 {
+			return nil, errors.New("invalid list index (missing closing bracket): " + line.Path)
+		}
+		newListPrefix := line.Path[2:closingBracketIdx]
+		// Initial list element.
+		if listPrefix == "" {
+			listPrefix = newListPrefix
+		}
+		if listPrefix != newListPrefix {
+			// Remove list prefix from path.
+			listPrefix = newListPrefix
+			result = append(result, currentDoc)
+			currentDoc = &yamlastsimple.Document{Offset: currentDoc.Offset + len(currentDoc.Lines)}
+		}
+		currentDoc.Lines = append(currentDoc.Lines, line)
+	}
+	return append(result, currentDoc), nil
 }

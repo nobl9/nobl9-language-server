@@ -1,6 +1,7 @@
 package completion
 
 import (
+	"context"
 	"strings"
 
 	"github.com/nobl9/nobl9-language-server/internal/files"
@@ -30,6 +31,7 @@ func (p KeysCompletionProvider) getType() completionProviderType {
 }
 
 func (p KeysCompletionProvider) Complete(
+	_ context.Context,
 	_ messages.CompletionParams,
 	_ files.SimpleObjectFile,
 	node *files.SimpleObjectNode,
@@ -70,16 +72,17 @@ func (p KeysCompletionProvider) Complete(
 		prop := p.docs.GetProperty(node.Kind, path+"."+proposedPath)
 		var insertText string
 		isRootSpecOrMetadata := path == "$" && (proposedPath == "spec" || proposedPath == "metadata")
-		if (prop == nil || len(prop.ChildrenPaths) == 0) && !isRootSpecOrMetadata {
+		switch {
+		case (prop == nil || len(prop.ChildrenPaths) == 0) && !isRootSpecOrMetadata:
 			// Proposed path is a simple value node.
 			insertText = proposedPath + ": "
-		} else if strings.HasSuffix(proposedPath, "[*]") {
+		case strings.HasSuffix(proposedPath, "[*]"):
 			insertText = strings.TrimSuffix(proposedPath, "[*]") + ":\n" + strings.Repeat(" ", line.GetIndent()) + "- "
-		} else {
+		default:
 			// Proposed path has children nodes and therefore continues on the next line.
 			// FIXME: This needs to be handled better, we should either detect default
 			// tabstop character or use workspace/configuration or expose LS config option.
-			insertText = proposedPath + ":\n" + strings.Repeat(" ", line.GetIndent())
+			insertText = proposedPath + ":\n" + strings.Repeat(" ", line.GetIndent()+2)
 		}
 		items = append(items, messages.CompletionItem{
 			Label:            proposedPath,

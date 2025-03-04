@@ -18,6 +18,7 @@ const (
 
 type providerInterface interface {
 	Complete(
+		ctx context.Context,
 		params messages.CompletionParams,
 		file files.SimpleObjectFile,
 		node *files.SimpleObjectNode,
@@ -64,7 +65,6 @@ func (h *Handler) Handle(ctx context.Context, params messages.CompletionParams) 
 		case keysCompletionType:
 			start, end := line.GetKeyPos()
 			if !line.IsType(yamlastsimple.LineTypeEmpty) &&
-				!line.IsType(yamlastsimple.LineTypeList) &&
 				(params.Position.Character < start || params.Position.Character > end) {
 				continue
 			}
@@ -73,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, params messages.CompletionParams) 
 				continue
 			}
 		}
-		items = append(items, provider.Complete(params, file.SimpleAST, node, line)...)
+		items = append(items, provider.Complete(ctx, params, file.SimpleAST, node, line)...)
 	}
 	return items, nil
 }

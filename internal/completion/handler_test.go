@@ -4,25 +4,33 @@ import (
 	"context"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/nobl9/nobl9-go/manifest"
+	v1alphaSLO "github.com/nobl9/nobl9-go/manifest/v1alpha/slo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nobl9/nobl9-language-server/internal/files"
 	"github.com/nobl9/nobl9-language-server/internal/messages"
+	"github.com/nobl9/nobl9-language-server/internal/nobl9repo"
+	"github.com/nobl9/nobl9-language-server/internal/objectref"
 	"github.com/nobl9/nobl9-language-server/internal/sdkdocs"
 	"github.com/nobl9/nobl9-language-server/internal/testutils"
 )
 
+var testDir = filepath.Join(testutils.FindModuleRoot(), "internal", "completion", "testdata")
+
+type handlerTestCase struct {
+	params           messages.CompletionParams
+	expected         []messages.CompletionItem
+	firstSnippetItem *messages.CompletionItem
+	ignoreSnippets   bool
+}
+
 func TestHandler_Handle(t *testing.T) {
 	t.Parallel()
-
-	testDir := filepath.Join(testutils.FindModuleRoot(), "internal", "completion", "testdata")
-	getTestFileURI := func(name string) messages.TextDocumentIdentifier {
-		return messages.TextDocumentIdentifier{URI: filepath.Join(testDir, name)}
-	}
 
 	fileSystem := files.NewFS()
 	testutils.RegisterTestFiles(t, fileSystem, testDir)
@@ -30,25 +38,20 @@ func TestHandler_Handle(t *testing.T) {
 	docs, err := sdkdocs.New()
 	require.NoError(t, err)
 	repo := mockObjectsRepo{
-		projectNames: []string{"project1", "project2"},
+		names: []string{"foo", "bar"},
 	}
 
 	handler := &Handler{
 		files: fileSystem,
 		providers: []providerInterface{
-			NewReferencesCompletionProvider(NewObjectsRefProvider(repo)),
+			NewReferencesCompletionProvider(repo),
 			NewKeysCompletionProvider(docs),
 			NewValuesCompletionProvider(docs),
 			NewSnippetsProvider(),
 		},
 	}
 
-	tests := map[string]struct {
-		params           messages.CompletionParams
-		expected         []messages.CompletionItem
-		firstSnippetItem *messages.CompletionItem
-		ignoreSnippets   bool
-	}{
+	tests := map[string]handlerTestCase{
 		"agent - complete root": {
 			params: messages.CompletionParams{
 				TextDocumentPositionParams: messages.TextDocumentPositionParams{
@@ -59,7 +62,7 @@ func TestHandler_Handle(t *testing.T) {
 					},
 				},
 			},
-			expected: rootPathCompletionItems,
+			expected: getRootPathCompletionItems(0),
 		},
 		"agent - complete metadata": {
 			params: messages.CompletionParams{
@@ -95,7 +98,7 @@ func TestHandler_Handle(t *testing.T) {
 					},
 				},
 			},
-			expected:       rootPathCompletionItems,
+			expected:       getRootPathCompletionItems(0),
 			ignoreSnippets: true,
 		},
 		"unfinished metadata - complete metadata": {
@@ -132,7 +135,7 @@ func TestHandler_Handle(t *testing.T) {
 					},
 				},
 			},
-			expected:       rootPathCompletionItems,
+			expected:       getRootPathCompletionItems(0),
 			ignoreSnippets: true,
 		},
 		"complete apiVersion": {
@@ -186,36 +189,6 @@ func TestHandler_Handle(t *testing.T) {
 				{Label: "Occurrences", Kind: messages.ValueCompletion},
 			},
 		},
-		"complete project names - value start": {
-			params: messages.CompletionParams{
-				TextDocumentPositionParams: messages.TextDocumentPositionParams{
-					TextDocument: getTestFileURI("complete-project-names.yaml"),
-					Position: messages.Position{
-						Line:      4,
-						Character: 11,
-					},
-				},
-			},
-			expected: []messages.CompletionItem{
-				{Label: "project1", Kind: messages.ReferenceCompletion},
-				{Label: "project2", Kind: messages.ReferenceCompletion},
-			},
-		},
-		"complete project names - value end": {
-			params: messages.CompletionParams{
-				TextDocumentPositionParams: messages.TextDocumentPositionParams{
-					TextDocument: getTestFileURI("complete-project-names.yaml"),
-					Position: messages.Position{
-						Line:      4,
-						Character: 12,
-					},
-				},
-			},
-			expected: []messages.CompletionItem{
-				{Label: "project1", Kind: messages.ReferenceCompletion},
-				{Label: "project2", Kind: messages.ReferenceCompletion},
-			},
-		},
 		"document without predecessor": {
 			params: messages.CompletionParams{
 				TextDocumentPositionParams: messages.TextDocumentPositionParams{
@@ -226,7 +199,7 @@ func TestHandler_Handle(t *testing.T) {
 					},
 				},
 			},
-			expected: rootPathCompletionItems,
+			expected: getRootPathCompletionItems(0),
 			firstSnippetItem: &messages.CompletionItem{
 				Label: "project",
 				InsertText: `apiVersion: n9/v1alpha
@@ -249,7 +222,7 @@ spec:
 					},
 				},
 			},
-			expected: rootPathCompletionItems,
+			expected: getRootPathCompletionItems(0),
 			firstSnippetItem: &messages.CompletionItem{
 				Label: "project",
 				InsertText: `---
@@ -273,7 +246,7 @@ spec:
 					},
 				},
 			},
-			expected: rootPathCompletionItems,
+			expected: getRootPathCompletionItems(2),
 			firstSnippetItem: &messages.CompletionItem{
 				Label: "project",
 				InsertText: `apiVersion: n9/v1alpha
@@ -296,7 +269,7 @@ spec:
 					},
 				},
 			},
-			expected: rootPathCompletionItems,
+			expected: getRootPathCompletionItems(0),
 			firstSnippetItem: &messages.CompletionItem{
 				Label: "project",
 				InsertText: `- apiVersion: n9/v1alpha
@@ -319,7 +292,7 @@ spec:
 					},
 				},
 			},
-			expected: rootPathCompletionItems,
+			expected: getRootPathCompletionItems(0),
 			firstSnippetItem: &messages.CompletionItem{
 				Label: "project",
 				InsertText: `apiVersion: n9/v1alpha
@@ -352,6 +325,7 @@ spec:
 			},
 		},
 	}
+	tests = mergeMaps(tests, getReferenceCompletionTestCases())
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -392,8 +366,122 @@ spec:
 	}
 }
 
-var (
-	rootPathCompletionItems = []messages.CompletionItem{
+func getReferenceCompletionTestCases() map[string]handlerTestCase {
+	tests := map[string]messages.Position{
+		"service project names - value start":         {Line: 4, Character: 11},
+		"service project names - value end":           {Line: 4, Character: 12},
+		"alert policy - alert method name":            {Line: 20, Character: 19},
+		"alert policy - alert method project":         {Line: 21, Character: 19},
+		"alert policy - default to metadata project":  {Line: 43, Character: 19},
+		"alert silence - alert policy name":           {Line: 62, Character: 17},
+		"alert silence - alert policy project":        {Line: 63, Character: 17},
+		"alert silence - default to metadata project": {Line: 76, Character: 14},
+		"annotation - slo project":                    {Line: 86, Character: 10},
+		"budget adjustment - slo name with project":   {Line: 105, Character: 19},
+		"report - project":                            {Line: 117, Character: 11},
+		"report - service":                            {Line: 120, Character: 18},
+		"report - service project":                    {Line: 121, Character: 18},
+		"report - slo":                                {Line: 124, Character: 18},
+		"report - slo project":                        {Line: 125, Character: 18},
+		"role binding - project ref":                  {Line: 140, Character: 20},
+		"role binding - group ref":                    {Line: 146, Character: 20},
+	}
+
+	testCasesMap := make(map[string]handlerTestCase, len(tests))
+	for name, tc := range tests {
+		testCasesMap[name] = handlerTestCase{
+			params: messages.CompletionParams{
+				TextDocumentPositionParams: messages.TextDocumentPositionParams{
+					TextDocument: getTestFileURI("complete-refs.yaml"),
+					Position: messages.Position{
+						Line:      tc.Line,
+						Character: tc.Character,
+					},
+				},
+			},
+			expected: []messages.CompletionItem{
+				{Label: "foo", Kind: messages.ReferenceCompletion},
+				{Label: "bar", Kind: messages.ReferenceCompletion},
+			},
+		}
+	}
+
+	noCompletionTests := map[string]messages.Position{
+		"budget adjustment - slo name with no project": {Line: 104, Character: 19},
+		"report - service with no project":             {Line: 119, Character: 17},
+		"report - slo with no project":                 {Line: 123, Character: 17},
+	}
+	for name, tc := range noCompletionTests {
+		testCasesMap[name] = handlerTestCase{
+			params: messages.CompletionParams{
+				TextDocumentPositionParams: messages.TextDocumentPositionParams{
+					TextDocument: getTestFileURI("complete-refs.yaml"),
+					Position: messages.Position{
+						Line:      tc.Line,
+						Character: tc.Character,
+					},
+				},
+			},
+		}
+	}
+
+	// Custom.
+	testCasesMap["role binding - user ref"] = handlerTestCase{
+		params: messages.CompletionParams{
+			TextDocumentPositionParams: messages.TextDocumentPositionParams{
+				TextDocument: getTestFileURI("complete-refs.yaml"),
+				Position: messages.Position{
+					Line:      138,
+					Character: 16,
+				},
+			},
+		},
+		expected: []messages.CompletionItem{
+			{
+				Label:            "Foo Bar (default@baz.com)",
+				Kind:             messages.ReferenceCompletion,
+				InsertText:       "foo",
+				InsertTextFormat: messages.PlainTextTextFormat,
+			},
+		},
+	}
+	testCasesMap["role binding - project role ref"] = handlerTestCase{
+		params: messages.CompletionParams{
+			TextDocumentPositionParams: messages.TextDocumentPositionParams{
+				TextDocument: getTestFileURI("complete-refs.yaml"),
+				Position: messages.Position{
+					Line:      139,
+					Character: 20,
+				},
+			},
+		},
+		expected: []messages.CompletionItem{
+			{Label: "project-viewer", Kind: messages.ReferenceCompletion},
+		},
+	}
+	testCasesMap["role binding - org role ref"] = handlerTestCase{
+		params: messages.CompletionParams{
+			TextDocumentPositionParams: messages.TextDocumentPositionParams{
+				TextDocument: getTestFileURI("complete-refs.yaml"),
+				Position: messages.Position{
+					Line:      147,
+					Character: 17,
+				},
+			},
+		},
+		expected: []messages.CompletionItem{
+			{Label: "organization-admin", Kind: messages.ReferenceCompletion},
+		},
+	}
+	return testCasesMap
+}
+
+func getTestFileURI(name string) messages.TextDocumentIdentifier {
+	return messages.TextDocumentIdentifier{URI: filepath.Join(testDir, name)}
+}
+
+func getRootPathCompletionItems(indent int) []messages.CompletionItem {
+	return []messages.CompletionItem{
 		{
 			Label:            "apiVersion",
 			Kind:             messages.PropertyCompletion,
@@ -409,16 +497,19 @@ var (
 		{
 			Label:            "metadata",
 			Kind:             messages.PropertyCompletion,
-			InsertText:       "metadata:\n  ",
+			InsertText:       "metadata:\n  " + strings.Repeat(" ", indent),
 			InsertTextFormat: messages.PlainTextTextFormat,
 		},
 		{
 			Label:            "spec",
 			Kind:             messages.PropertyCompletion,
-			InsertText:       "spec:\n  ",
+			InsertText:       "spec:\n  " + strings.Repeat(" ", indent),
 			InsertTextFormat: messages.PlainTextTextFormat,
 		},
 	}
+}
+
+var (
 	metadataPathCompletionItems = []messages.CompletionItem{
 		{
 			Label:            "name",
@@ -460,16 +551,64 @@ var (
 )
 
 type mockObjectsRepo struct {
-	projectNames []string
+	names []string
 }
 
-func (m mockObjectsRepo) GetAllNames(_ context.Context, kind manifest.Kind, _ string) []string {
-	if kind == manifest.KindProject {
-		return m.projectNames
+func (m mockObjectsRepo) GetAllNames(_ context.Context, kind manifest.Kind, project string) []string {
+	if !objectref.IsProjectScoped(kind) {
+		return m.names
 	}
-	return nil
+	if project == "" {
+		panic("project must be set for kind " + kind.String())
+	}
+	return m.names
+}
+
+func (m mockObjectsRepo) GetObject(
+	_ context.Context,
+	kind manifest.Kind,
+	_, _ string,
+) (manifest.Object, error) {
+	if kind == manifest.KindSLO {
+		return v1alphaSLO.New(
+			v1alphaSLO.Metadata{},
+			v1alphaSLO.Spec{
+				Objectives: []v1alphaSLO.Objective{
+					{ObjectiveBase: v1alphaSLO.ObjectiveBase{Name: "foo"}},
+					{ObjectiveBase: v1alphaSLO.ObjectiveBase{Name: "bar"}},
+				},
+			},
+		), nil
+	}
+	return nil, nil
 }
 
 func (m mockObjectsRepo) GetDefaultProject() string {
 	return "default"
+}
+
+func (m mockObjectsRepo) GetUsers(_ context.Context, phrase string) ([]*nobl9repo.User, error) {
+	return []*nobl9repo.User{
+		{UserID: "foo", FirstName: "Foo", LastName: "Bar", Email: phrase + "@baz.com"},
+	}, nil
+}
+
+func (m mockObjectsRepo) GetRoles(_ context.Context) (*nobl9repo.Roles, error) {
+	return &nobl9repo.Roles{
+		OrganizationRoles: []nobl9repo.Role{{Name: "organization-admin"}},
+		ProjectRoles:      []nobl9repo.Role{{Name: "project-viewer"}},
+	}, nil
+}
+
+func mergeMaps[V any](maps ...map[string]V) map[string]V {
+	result := make(map[string]V)
+	for _, m := range maps {
+		for k, v := range m {
+			if _, ok := result[k]; ok {
+				panic("duplicate key: " + k)
+			}
+			result[k] = v
+		}
+	}
+	return result
 }

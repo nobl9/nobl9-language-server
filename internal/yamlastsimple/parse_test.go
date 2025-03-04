@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseFile(t *testing.T) {
@@ -386,26 +387,59 @@ name: my-service
 	}
 }
 
-func TestFile_FindLine(t *testing.T) {
-	in := `---
+func TestDocument_FindLine(t *testing.T) {
+	in := `
 metadata:
   name: my-service
----
-metadata:
-name: my-service
----`
+  project: default
+spec:
+  description: my-service
+`
 	file := ParseFile(in)
 
-	for i, line := range []string{
-		"",
+	for i, expected := range []string{
+		"$",
 		"$.metadata",
 		"$.metadata.name",
-		"",
-		"$.metadata",
-		"$.name",
-		"",
+		"$.metadata.project",
+		"$.spec",
+		"$.spec.description",
+		"$",
 	} {
-		assert.Equal(t, line, file.FindLine(i).Path)
+		t.Run(expected, func(t *testing.T) {
+			actual := file.Docs[0].FindLine(i)
+			require.NotNil(t, actual)
+			assert.Equal(t, expected, actual.Path)
+		})
+	}
+}
+
+func TestDocument_FindLineByPath(t *testing.T) {
+	in := `
+metadata:
+  name: my-service
+  project: default
+spec:
+  description:
+  - my-service
+`
+	file := ParseFile(in)
+
+	for _, tc := range []struct {
+		path string
+		out  string
+	}{
+		{"$", "$"},
+		{"$.metadata", "$.metadata"},
+		{"$.metadata.name", "$.metadata.name"},
+		{"$.spec", "$.spec"},
+		{"$.spec.description[0]", "$.spec.description[0]"},
+	} {
+		t.Run(tc.path, func(t *testing.T) {
+			actual := file.Docs[0].FindLineByPath(tc.path)
+			require.NotNil(t, actual)
+			assert.Equal(t, tc.out, actual.Path)
+		})
 	}
 }
 

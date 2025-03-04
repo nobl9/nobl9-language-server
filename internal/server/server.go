@@ -102,7 +102,8 @@ func (s *Server) handleInitialize(
 		Capabilities: messages.ServerCapabilities{
 			TextDocumentSync: messages.TextDocumentSyncKindFull,
 			CompletionProvider: &messages.CompletionProvider{
-				ResolveProvider: false,
+				ResolveProvider:   false,
+				TriggerCharacters: []string{":"},
 			},
 			HoverProvider:      true,
 			CodeActionProvider: true,

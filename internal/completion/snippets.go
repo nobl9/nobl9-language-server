@@ -1,6 +1,7 @@
 package completion
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
 	"log/slog"
@@ -29,6 +30,7 @@ func (p SnippetsProvider) getType() completionProviderType {
 }
 
 func (p SnippetsProvider) Complete(
+	_ context.Context,
 	params messages.CompletionParams,
 	file files.SimpleObjectFile,
 	_ *files.SimpleObjectNode,

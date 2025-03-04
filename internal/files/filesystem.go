@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 func NewFS() *FS {
@@ -40,8 +42,14 @@ func (f *FS) HasFile(uri fileURI) bool {
 }
 
 func (f *FS) CloseFile(uri fileURI) error {
+	if !f.HasFile(uri) {
+		return errors.New(uri + " file already closed")
+	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if _, hasFile := f.files[uri]; !hasFile {
+		return errors.New(uri + " file already closed")
+	}
 	delete(f.files, uri)
 	return nil
 }
@@ -52,11 +60,7 @@ func (f *FS) OpenFile(ctx context.Context, uri fileURI, content string, version 
 	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	file, err := NewFile(ctx, uri, content)
-	if err != nil {
-		return err
-	}
-	file.UpdateVersion(version)
+	file := NewFile(ctx, uri, version, content)
 	f.files[uri] = file
 	return nil
 }
@@ -68,15 +72,6 @@ func (f *FS) UpdateFile(ctx context.Context, uri fileURI, content string, versio
 	if !ok {
 		return fmt.Errorf("file not found: %s", uri)
 	}
-	// Version did not change, no need to update.
-	if version == file.Version {
-		return nil
-	}
-	if version >= 0 {
-		file.UpdateVersion(version)
-	}
-	if err := file.Update(ctx, content); err != nil {
-		return err
-	}
+	file.Update(ctx, version, content)
 	return nil
 }

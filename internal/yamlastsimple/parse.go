@@ -11,17 +11,6 @@ type File struct {
 	Docs []*Document
 }
 
-func (f File) FindLine(lineNum int) *Line {
-	i := 0
-	for _, doc := range f.Docs {
-		if line := doc.FindLine(lineNum - i); line != nil {
-			return line
-		}
-		i += len(doc.Lines)
-	}
-	return nil
-}
-
 type Document struct {
 	Offset int
 	Lines  []*Line
@@ -32,6 +21,15 @@ func (d *Document) FindLine(lineNum int) *Line {
 		return nil
 	}
 	return d.Lines[lineNum]
+}
+
+func (d *Document) FindLineByPath(path string) *Line {
+	for _, line := range d.Lines {
+		if line.Path == path {
+			return line
+		}
+	}
+	return nil
 }
 
 type LineType int
