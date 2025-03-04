@@ -5,7 +5,7 @@ import (
 )
 
 // Match returns true if the yaml path representation matches concrete path.
-// YAMLPath can contain special identifiers, like wildcards.
+// The path can contain special identifiers, like wildcards.
 func Match(yamlPath, concrete string) bool {
 	if yamlPath == concrete {
 		return true

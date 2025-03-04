@@ -7,7 +7,6 @@ import (
 	"github.com/nobl9/nobl9-language-server/internal/files"
 	"github.com/nobl9/nobl9-language-server/internal/messages"
 	"github.com/nobl9/nobl9-language-server/internal/yamlastsimple"
-	"github.com/nobl9/nobl9-language-server/internal/yamlpath"
 )
 
 func NewKeysCompletionProvider(docs docsProvider) *KeysCompletionProvider {
@@ -37,7 +36,7 @@ func (p KeysCompletionProvider) Complete(
 	node *files.SimpleObjectNode,
 	line *yamlastsimple.Line,
 ) []messages.CompletionItem {
-	path := yamlpath.NormalizeRootPath(line.Path)
+	path := line.GeneralizedPath
 	// Get parent path if the key has been completed.
 	if line.IsType(yamlastsimple.LineTypeMapping) {
 		if split := strings.Split(path, "."); len(split) > 1 {

@@ -5,18 +5,23 @@ import (
 
 	"github.com/nobl9/nobl9-go/manifest"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/nobl9/nobl9-language-server/internal/yamlastsimple"
 )
 
 func TestGet(t *testing.T) {
 	tests := []struct {
 		name     string
 		kind     manifest.Kind
-		path     string
+		line     *yamlastsimple.Line
 		expected *Reference
 	}{
 		{
 			kind: manifest.KindAlertPolicy,
-			path: "$.spec.alertMethods[2].metadata.project",
+			line: &yamlastsimple.Line{
+				Path:            "$.spec.alertMethods[2].metadata.project",
+				GeneralizedPath: "$.spec.alertMethods[*].metadata.project",
+			},
 			expected: &Reference{
 				Kind: manifest.KindProject,
 				Path: "$.spec.alertMethods[*].metadata.project",
@@ -24,7 +29,10 @@ func TestGet(t *testing.T) {
 		},
 		{
 			kind: manifest.KindAlertPolicy,
-			path: "$.spec.alertMethods[2].metadata.name",
+			line: &yamlastsimple.Line{
+				Path:            "$.spec.alertMethods[2].metadata.name",
+				GeneralizedPath: "$.spec.alertMethods[*].metadata.name",
+			},
 			expected: &Reference{
 				Kind:        manifest.KindAlertMethod,
 				Path:        "$.spec.alertMethods[*].metadata.name",
@@ -33,7 +41,10 @@ func TestGet(t *testing.T) {
 		},
 		{
 			kind: manifest.KindReport,
-			path: "$.spec.filters.slos[0].name",
+			line: &yamlastsimple.Line{
+				Path:            "$.spec.filters.slos[0].name",
+				GeneralizedPath: "$.spec.filters.slos[*].name",
+			},
 			expected: &Reference{
 				Kind:        manifest.KindSLO,
 				Path:        "$.spec.filters.slos[*].name",
@@ -42,7 +53,10 @@ func TestGet(t *testing.T) {
 		},
 		{
 			kind: manifest.KindSLO,
-			path: "$.spec.objectives[2].composite.components.objectives[1].objective",
+			line: &yamlastsimple.Line{
+				Path:            "$.spec.objectives[2].composite.components.objectives[1].objective",
+				GeneralizedPath: "$.spec.objectives[*].composite.components.objectives[*].objective",
+			},
 			expected: &Reference{
 				Kind:        manifest.KindSLO,
 				Path:        "$.spec.objectives[*].composite.components.objectives[*].objective",
@@ -51,15 +65,18 @@ func TestGet(t *testing.T) {
 			},
 		},
 		{
-			kind:     manifest.KindService,
-			path:     "$.non.existent.path",
+			kind: manifest.KindService,
+			line: &yamlastsimple.Line{
+				Path:            "$.non.existent.path",
+				GeneralizedPath: "$.non.existent.path",
+			},
 			expected: nil,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.path, func(t *testing.T) {
-			result := Get(tt.kind, tt.path)
+		t.Run(tt.line.Path, func(t *testing.T) {
+			result := Get(tt.kind, tt.line)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

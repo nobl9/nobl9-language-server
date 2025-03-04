@@ -7,16 +7,16 @@ import (
 
 	"github.com/nobl9/nobl9-go/manifest"
 
-	"github.com/nobl9/nobl9-language-server/internal/yamlpath"
+	"github.com/nobl9/nobl9-language-server/internal/yamlastsimple"
 )
 
-func Get(kind manifest.Kind, path string) *Reference {
+// Get returns a reference for the given kind and generalized line path.
+func Get(kind manifest.Kind, line *yamlastsimple.Line) *Reference {
 	refs, ok := objectReferences[kind]
 	if !ok {
 		return nil
 	}
-	normalized := yamlpath.NormalizePath(path)
-	ref, ok := refs[normalized]
+	ref, ok := refs[line.GeneralizedPath]
 	if !ok {
 		return nil
 	}
@@ -25,10 +25,10 @@ func Get(kind manifest.Kind, path string) *Reference {
 		Path: ref.Path,
 	}
 	if ref.ProjectPath != "" {
-		result.ProjectPath = calculateReferencedPath(path, ref.ProjectPath)
+		result.ProjectPath = calculateReferencedPath(line.Path, ref.ProjectPath)
 	}
 	if ref.SLOPath != "" {
-		result.SLOPath = calculateReferencedPath(path, ref.SLOPath)
+		result.SLOPath = calculateReferencedPath(line.Path, ref.SLOPath)
 	}
 	return result
 }

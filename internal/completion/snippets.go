@@ -11,7 +11,6 @@ import (
 	"github.com/nobl9/nobl9-language-server/internal/files"
 	"github.com/nobl9/nobl9-language-server/internal/messages"
 	"github.com/nobl9/nobl9-language-server/internal/yamlastsimple"
-	"github.com/nobl9/nobl9-language-server/internal/yamlpath"
 )
 
 //go:embed snippets.json
@@ -46,10 +45,9 @@ func (p SnippetsProvider) Complete(
 		return nil
 	}
 
-	path := line.Path
+	path := line.GeneralizedPath
 	// We only support completions for the root of the document.
-	isRootArray := yamlpath.Match("$[*]", path)
-	if path != "$" && !isRootArray {
+	if path != "$" {
 		slog.Debug("not a root!", slog.String("path", path), slog.Any("line", line))
 		return nil
 	}
@@ -58,7 +56,7 @@ func (p SnippetsProvider) Complete(
 	copy(items, p.items)
 	prevLine := findLine(params.Position.Line - 1)
 	for i := range p.items {
-		if isRootArray {
+		if strings.HasPrefix(line.Path, "$[") {
 			items[i].InsertText = formatObjectToArrayElement(line, items[i].InsertText)
 		} else if prevLine != nil && prevLine.IsType(yamlastsimple.LineTypeList) {
 			items[i].InsertText = "- " + formatObjectToArrayElement(line, items[i].InsertText)

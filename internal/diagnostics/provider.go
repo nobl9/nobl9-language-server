@@ -742,7 +742,7 @@ func (d Provider) checkDeprecated(object *files.SimpleObjectNode) []messages.Dia
 			if !line.IsType(yamlastsimple.LineTypeMapping) {
 				continue
 			}
-			if !yamlpath.Match(line.Path, path) {
+			if line.GeneralizedPath != path {
 				continue
 			}
 			start, end := line.GetKeyPos()

@@ -14,7 +14,6 @@ import (
 	"github.com/nobl9/nobl9-language-server/internal/objectref"
 	"github.com/nobl9/nobl9-language-server/internal/sdkdocs"
 	"github.com/nobl9/nobl9-language-server/internal/yamlastsimple"
-	"github.com/nobl9/nobl9-language-server/internal/yamlpath"
 )
 
 type objectsRepo interface {
@@ -47,9 +46,7 @@ func (p ReferencesCompletionProvider) Complete(
 	node *files.SimpleObjectNode,
 	line *yamlastsimple.Line,
 ) []messages.CompletionItem {
-	path := yamlpath.NormalizeRootPath(line.Path)
-
-	ref := objectref.Get(node.Kind, path)
+	ref := objectref.Get(node.Kind, line)
 	if ref == nil {
 		return nil
 	}

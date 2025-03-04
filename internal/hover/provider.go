@@ -9,7 +9,7 @@ import (
 
 	"github.com/nobl9/nobl9-language-server/internal/messages"
 	"github.com/nobl9/nobl9-language-server/internal/sdkdocs"
-	"github.com/nobl9/nobl9-language-server/internal/yamlpath"
+	"github.com/nobl9/nobl9-language-server/internal/yamlastsimple"
 )
 
 type docsProvider interface {
@@ -24,8 +24,9 @@ type Provider struct {
 	docs docsProvider
 }
 
-func (d Provider) Hover(kind manifest.Kind, path string) *messages.HoverResponse {
-	path = yamlpath.NormalizeRootPath(path)
+func (d Provider) Hover(kind manifest.Kind, line *yamlastsimple.Line) *messages.HoverResponse {
+	path := line.GeneralizedPath
+
 	prop := d.docs.GetProperty(kind, path)
 	if prop == nil {
 		return nil

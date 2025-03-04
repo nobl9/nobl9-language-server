@@ -164,8 +164,8 @@ spec:
 							{Path: "$.metadata.annotations.app", indent: 4, Type: LineTypeMapping},
 							{Path: "$.metadata.labels", indent: 2, Type: LineTypeMapping},
 							{Path: "$.metadata.labels.team[*]", indent: 4, Type: LineTypeMapping},
-							{Path: "$.metadata.labels.team[0]", indent: 8, Type: LineTypeList},
-							{Path: "$.metadata.labels.team[1]", indent: 8, Type: LineTypeList},
+							{Path: "$.metadata.labels.team[0]", GeneralizedPath: "$.metadata.labels.team[*]", indent: 8, Type: LineTypeList},
+							{Path: "$.metadata.labels.team[1]", GeneralizedPath: "$.metadata.labels.team[*]", indent: 8, Type: LineTypeList},
 							{Path: "$.metadata.displayName", indent: 2, Type: LineTypeMapping},
 							{Path: "$.spec", indent: 0, Type: LineTypeMapping},
 							{Path: "$.spec.description", indent: 2, Type: LineTypeMapping},
@@ -186,8 +186,8 @@ displayName: My Service`,
 						Lines: []*Line{
 							{Path: "$.labels", indent: 0, Type: LineTypeMapping},
 							{Path: "$.labels.team[*]", indent: 2, Type: LineTypeMapping},
-							{Path: "$.labels.team[0]", indent: 4, Type: LineTypeList},
-							{Path: "$.labels.team[1]", indent: 4, Type: LineTypeList},
+							{Path: "$.labels.team[0]", GeneralizedPath: "$.labels.team[*]", indent: 4, Type: LineTypeList},
+							{Path: "$.labels.team[1]", GeneralizedPath: "$.labels.team[*]", indent: 4, Type: LineTypeList},
 							{Path: "$.displayName", indent: 0, Type: LineTypeMapping},
 						},
 					},
@@ -213,13 +213,13 @@ metadata:
 							{Path: "$", indent: 0, Type: LineTypeEmpty},
 							{Path: "$.metadata", indent: 0, Type: LineTypeMapping},
 							{Path: "$.metadata.annotations[*]", indent: 2, Type: LineTypeMapping},
-							{Path: "$.metadata.annotations[0].app", indent: 6, Type: LineTypeList | LineTypeMapping},
-							{Path: "$.metadata.annotations[0].my-app", indent: 6, Type: LineTypeMapping},
-							{Path: "$.metadata.annotations[0].my-app.foo", indent: 8, Type: LineTypeMapping},
-							{Path: "$.metadata.annotations[0].my-app.list[*]", indent: 8, Type: LineTypeMapping},
-							{Path: "$.metadata.annotations[0].my-app.list[0]", indent: 10, Type: LineTypeList},
-							{Path: "$.metadata.annotations[0].my-app.list[1]", indent: 10, Type: LineTypeList},
-							{Path: "$.metadata.annotations[1].team", indent: 6, Type: LineTypeList | LineTypeMapping},
+							{Path: "$.metadata.annotations[0].app", GeneralizedPath: "$.metadata.annotations[*].app", indent: 6, Type: LineTypeList | LineTypeMapping},
+							{Path: "$.metadata.annotations[0].my-app", GeneralizedPath: "$.metadata.annotations[*].my-app", indent: 6, Type: LineTypeMapping},
+							{Path: "$.metadata.annotations[0].my-app.foo", GeneralizedPath: "$.metadata.annotations[*].my-app.foo", indent: 8, Type: LineTypeMapping},
+							{Path: "$.metadata.annotations[0].my-app.list[*]", GeneralizedPath: "$.metadata.annotations[*].my-app.list[*]", indent: 8, Type: LineTypeMapping},
+							{Path: "$.metadata.annotations[0].my-app.list[0]", GeneralizedPath: "$.metadata.annotations[*].my-app.list[*]", indent: 10, Type: LineTypeList},
+							{Path: "$.metadata.annotations[0].my-app.list[1]", GeneralizedPath: "$.metadata.annotations[*].my-app.list[*]", indent: 10, Type: LineTypeList},
+							{Path: "$.metadata.annotations[1].team", GeneralizedPath: "$.metadata.annotations[*].team", indent: 6, Type: LineTypeList | LineTypeMapping},
 							{Path: "$.metadata.displayName", indent: 2, Type: LineTypeMapping},
 						},
 					},
@@ -239,12 +239,12 @@ metadata:
 					{
 						Lines: []*Line{
 							{Path: "$", indent: 0, Type: LineTypeEmpty},
-							{Path: "$[0].metadata", indent: 2, Type: LineTypeList | LineTypeMapping},
-							{Path: "$[0].metadata.annotations", indent: 4, Type: LineTypeMapping},
-							{Path: "$[0].metadata.annotations.app", indent: 6, Type: LineTypeMapping},
-							{Path: "$[0].metadata.displayName", indent: 4, Type: LineTypeMapping},
-							{Path: "$[1].metadata", indent: 2, Type: LineTypeList | LineTypeMapping},
-							{Path: "$[1].displayName", indent: 2, Type: LineTypeMapping},
+							{Path: "$[0].metadata", GeneralizedPath: "$.metadata", indent: 2, Type: LineTypeList | LineTypeMapping},
+							{Path: "$[0].metadata.annotations", GeneralizedPath: "$.metadata.annotations", indent: 4, Type: LineTypeMapping},
+							{Path: "$[0].metadata.annotations.app", GeneralizedPath: "$.metadata.annotations.app", indent: 6, Type: LineTypeMapping},
+							{Path: "$[0].metadata.displayName", GeneralizedPath: "$.metadata.displayName", indent: 4, Type: LineTypeMapping},
+							{Path: "$[1].metadata", GeneralizedPath: "$.metadata", indent: 2, Type: LineTypeList | LineTypeMapping},
+							{Path: "$[1].displayName", GeneralizedPath: "$.displayName", indent: 2, Type: LineTypeMapping},
 						},
 					},
 				},
@@ -380,6 +380,13 @@ name: my-service
 				for _, line := range doc.Lines {
 					line.value = ""
 					line.valueColonIdx = 0
+				}
+			}
+			for _, doc := range tc.out.Docs {
+				for _, line := range doc.Lines {
+					if line.GeneralizedPath == "" {
+						line.GeneralizedPath = line.Path
+					}
 				}
 			}
 			assert.Equal(t, tc.out, *file)
@@ -537,5 +544,29 @@ func TestLine_GetValuePos(t *testing.T) {
 		start, end := file.Docs[0].Lines[tc.line].GetValuePos()
 		assert.Equal(t, tc.expectedStart, start, "start\n%s", tc.in)
 		assert.Equal(t, tc.expectedEnd, end, "end\n%s", tc.in)
+	}
+}
+
+func Test_generalizePath(t *testing.T) {
+	tests := []struct {
+		Input    string
+		Expected string
+	}{
+		{Input: "", Expected: ""},
+		{Input: "$", Expected: "$"},
+		{Input: "$[1]", Expected: "$"},
+		{Input: "$[10]", Expected: "$"},
+		{Input: "$[1]", Expected: "$"},
+		{Input: "$[10]", Expected: "$"},
+		{Input: "$.[1]", Expected: "$.[*]"},
+		{Input: "$.[10]", Expected: "$.[*]"},
+		{Input: "$[5].A.B", Expected: "$.A.B"},
+		{Input: "$.A[1].B[3]", Expected: "$.A[*].B[*]"},
+		{Input: "$.A[10].B[300]", Expected: "$.A[*].B[*]"},
+	}
+	for _, test := range tests {
+		t.Run(test.Input, func(t *testing.T) {
+			assert.Equal(t, test.Expected, generalizePath(test.Input))
+		})
 	}
 }

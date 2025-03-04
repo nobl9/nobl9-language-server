@@ -8,10 +8,11 @@ import (
 
 	"github.com/nobl9/nobl9-language-server/internal/files"
 	"github.com/nobl9/nobl9-language-server/internal/messages"
+	"github.com/nobl9/nobl9-language-server/internal/yamlastsimple"
 )
 
 type providerInterface interface {
-	Hover(kind manifest.Kind, path string) *messages.HoverResponse
+	Hover(kind manifest.Kind, line *yamlastsimple.Line) *messages.HoverResponse
 }
 
 func NewHandler(files *files.FS, provider providerInterface) *Handler {
@@ -30,30 +31,23 @@ func (h *Handler) Handle(ctx context.Context, params messages.HoverParams) (any,
 	// Change from 0-based to 1-based line number.
 	params.Position.Line++
 
-	object, err := h.findObject(ctx, params.TextDocument.URI, params.Position.Line)
-	if err != nil || object == nil {
-		return nil, err
-	}
-	node, err := object.Node.Find(params.Position.Line)
+	file, err := h.files.GetFile(params.TextDocument.URI)
 	if err != nil {
 		return nil, err
 	}
-	return h.provider.Hover(object.Object.GetKind(), node.GetPath()), nil
-}
-
-func (h *Handler) findObject(ctx context.Context, uri string, line int) (*files.ObjectNode, error) {
-	file, err := h.files.GetFile(uri)
-	if err != nil {
-		return nil, err
+	var (
+		node *files.SimpleObjectNode
+		line *yamlastsimple.Line
+	)
+	for _, node = range file.SimpleAST {
+		line = node.Doc.FindLine(params.Position.Line - node.Doc.Offset)
+		if line != nil {
+			break
+		}
 	}
-	object := file.FindObject(line)
-	if object == nil {
-		slog.WarnContext(ctx, "no object found", slog.Any("line", line))
+	if node == nil || line == nil {
+		slog.ErrorContext(ctx, "no document found", slog.Any("line", params.Position.Line))
 		return nil, nil
 	}
-	// If there was an error parsing the object, we can't provide completions.
-	if object.Err != nil {
-		return nil, nil // nolint: nilerr
-	}
-	return object, nil
+	return h.provider.Hover(node.Kind, line), nil
 }

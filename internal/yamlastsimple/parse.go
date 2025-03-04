@@ -45,8 +45,14 @@ const (
 )
 
 type Line struct {
+	// Path is the actual path of this line within a [Document].
 	Path string
-	Type LineType
+	// GeneralizedPath is a path that can be used to match the line with a given general path.
+	// Example:
+	//   $[0].metadata.labels -> $.metadata.labels
+	//   $.metadata.labels[0].name -> $.metadata.labels[*].name
+	GeneralizedPath string
+	Type            LineType
 
 	value         string
 	indent        int
@@ -245,6 +251,9 @@ func postProcessPaths(parsedLines []*Line) []*Line {
 			line.Path = line.Path[:len(line.Path)-1]
 		}
 	}
+	for _, line := range parsedLines {
+		line.GeneralizedPath = generalizePath(line.Path)
+	}
 	return parsedLines
 }
 
@@ -302,4 +311,41 @@ func getIndentLevel(s string) int {
 		ctr++
 	}
 	return ctr
+}
+
+// generalizePath generalizes the root path of the YAML document by:
+//   - removing the first array marker (if it exists)
+//   - replacing list indices with wildcards '*'
+func generalizePath(path string) string {
+	if len(path) < 2 {
+		return path
+	}
+	if path[0] == '$' && path[1] == '[' {
+		closingBracketIndex := strings.IndexRune(path, ']')
+		if closingBracketIndex != -1 {
+			return "$" + path[closingBracketIndex+1:]
+		}
+	}
+	return replaceListIndicesWithWildcards(path)
+}
+
+func replaceListIndicesWithWildcards(path string) string {
+	if len(path) == 0 {
+		return path
+	}
+	var arrStart bool
+	replaced := make([]byte, 0, len(path))
+	for i := range path {
+		switch {
+		case path[i] == '[':
+			arrStart = true
+		case path[i] == ']':
+			replaced = append(replaced, '*')
+			arrStart = false
+		case arrStart:
+			continue // skip array index
+		}
+		replaced = append(replaced, path[i])
+	}
+	return string(replaced)
 }

@@ -556,6 +556,15 @@ func TestHandler_Handle(t *testing.T) {
 							End:   messages.Position{Line: 7, Character: 11},
 						},
 					},
+					{
+						Message:  "property is deprecated",
+						Severity: messages.DiagnosticSeverityWarning,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 52, Character: 4},
+							End:   messages.Position{Line: 52, Character: 13},
+						},
+					},
 				},
 			},
 		},

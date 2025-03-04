@@ -8,7 +8,6 @@ import (
 	"github.com/nobl9/nobl9-language-server/internal/files"
 	"github.com/nobl9/nobl9-language-server/internal/messages"
 	"github.com/nobl9/nobl9-language-server/internal/yamlastsimple"
-	"github.com/nobl9/nobl9-language-server/internal/yamlpath"
 )
 
 func NewValuesCompletionProvider(docs docsProvider) *ValuesCompletionProvider {
@@ -30,7 +29,7 @@ func (p ValuesCompletionProvider) Complete(
 	node *files.SimpleObjectNode,
 	line *yamlastsimple.Line,
 ) []messages.CompletionItem {
-	path := yamlpath.NormalizeRootPath(line.Path)
+	path := line.GeneralizedPath
 
 	var values []string
 	switch path {
