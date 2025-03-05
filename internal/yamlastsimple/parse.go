@@ -223,7 +223,6 @@ func postProcessPaths(parsedLines []*Line) []*Line {
 			// Parent.
 			if prevLine.indent < line.indent {
 				line.Path = prevLine.Path + "[0]." + line.Path
-				//prevLine.Path += "[*]"
 				break
 			}
 			// Sibling.

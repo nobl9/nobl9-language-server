@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-fileExtensionsToIgnore=('.ico' '.png' '.desc' '.yaml')
+fileExtensionsToIgnore=('.ico' '.png' '.desc' '.yaml' '.gif' 'parse_test.go')
 
 found=0
 for file in $(git ls-tree -r HEAD --name-only); do

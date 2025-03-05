@@ -51,10 +51,15 @@ const spanFinishedMsg = "SPAN FINISHED"
 
 // Finish ends the [Span] and logs it through [slog.Logger].
 func (s *spanHandler) Finish() {
-	s.end = time.Now()
 	if s.ctx == nil {
 		s.ctx = context.Background()
 	}
+	l := slog.Default()
+	if !l.Enabled(s.ctx, LevelTrace) {
+		return
+	}
+
+	s.end = time.Now()
 	record := slog.NewRecord(s.end, LevelTrace, spanFinishedMsg, s.pc)
 	record.Add(
 		slog.Group("span",
@@ -64,5 +69,5 @@ func (s *spanHandler) Finish() {
 			slog.Time("end_time", s.end),
 		),
 	)
-	_ = slog.Default().Handler().Handle(s.ctx, record)
+	_ = l.Handler().Handle(s.ctx, record)
 }

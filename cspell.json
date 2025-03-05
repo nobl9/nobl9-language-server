@@ -28,7 +28,9 @@
     "CODEOWNERS",
     "bin/**",
     "gitsync.json",
-    "neovim-config"
+    "neovim-config",
+    "**/testdata/**",
+    "docs.json"
   ],
   "words": [
     "endef",
@@ -46,7 +48,9 @@
     "objectsrepo",
     "plantuml",
     "sloctl",
+    "slos",
     "tpng",
+    "usrmgmt",
     "vuln",
     "vulns",
     "wrapf"

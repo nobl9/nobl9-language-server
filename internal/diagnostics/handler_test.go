@@ -63,6 +63,27 @@ func TestHandler_Handle(t *testing.T) {
 				},
 			},
 		},
+		"missing metadata name - no TextDocumentItem.Text": {
+			item: messages.TextDocumentItem{
+				URI:     getTestFileURI("missing-name.yaml").URI,
+				Version: 1,
+			},
+			expected: &messages.PublishDiagnosticsParams{
+				URI:     getTestFileURI("missing-name.yaml").URI,
+				Version: 1,
+				Diagnostics: []messages.Diagnostic{
+					{
+						Message:  "metadata.name: property is required but was empty",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(config.ServerName),
+						Range: messages.Range{
+							Start: messages.Position{Line: 2, Character: 0},
+							End:   messages.Position{Line: 2, Character: 8},
+						},
+					},
+				},
+			},
+		},
 		"empty metadata name": {
 			item: messages.TextDocumentItem{
 				URI:     getTestFileURI("empty-name.yaml").URI,

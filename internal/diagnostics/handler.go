@@ -3,6 +3,7 @@ package diagnostics
 import (
 	"cmp"
 	"context"
+	"log/slog"
 	"slices"
 
 	"github.com/nobl9/nobl9-language-server/internal/files"
@@ -26,13 +27,15 @@ type Handler struct {
 }
 
 func (h *Handler) Handle(ctx context.Context, item messages.TextDocumentItem) (any, error) {
-	if item.Text == "" {
-		return nil, nil
-	}
+	// We might not need this check!
+	// if item.Text == "" {
+	// 	return nil, nil
+	// }
 	file, err := h.fs.GetFile(item.URI)
 	if err != nil {
 		return nil, err
 	}
+	slog.DebugContext(ctx, "diagnosing file", slog.Any("file", file))
 	params := messages.PublishDiagnosticsParams{
 		URI:     item.URI,
 		Version: item.Version,
@@ -51,6 +54,8 @@ func (h *Handler) Handle(ctx context.Context, item messages.TextDocumentItem) (a
 	}
 	// If the file has changed we don't want to send diagnostics for the old version.
 	if file, err = h.fs.GetFile(item.URI); err == nil && file.Version != item.Version {
+		slog.DebugContext(ctx, "file version has changed, skipping diagnostics",
+			slog.Int("newVersion", file.Version))
 		return nil, nil
 	}
 	params.Diagnostics = diags

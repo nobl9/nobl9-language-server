@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// nolint: lll
 func TestParseFile(t *testing.T) {
 	tests := map[string]struct {
 		in  string

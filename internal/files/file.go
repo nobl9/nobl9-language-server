@@ -83,12 +83,10 @@ func (v *File) FindObject(line int) *ObjectNode {
 
 func (v *File) Update(ctx context.Context, version int, content string) {
 	// If version has not changed, there's no need to update the file.
-	if version == v.Version {
+	if (version != 0 && version == v.Version) || version < v.Version {
 		return
 	}
-	if version != 0 {
-		v.Version = version
-	}
+	v.Version = version
 	v.Content = content
 
 	v.SimpleAST, v.Err = parseSimpleObjectFile(content)

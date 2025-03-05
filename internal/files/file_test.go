@@ -25,24 +25,53 @@ func TestFile_Update(t *testing.T) {
 	tests := []struct {
 		name    string
 		content string
+		version int
+		inFile  *File
+		outFile *File
 	}{
 		{
-			name:    "invalid Nobl9 object",
+			name:    "initial zero version",
 			content: "content: foo",
+			version: 0,
+			inFile:  &File{Version: 0},
+			outFile: &File{Version: 0, Content: "content: foo"},
 		},
 		{
-			name:    "invalid YAML",
-			content: "content:foo",
+			name:    "version upgrade",
+			content: "content: foo",
+			version: 2,
+			inFile:  &File{Version: 1, Content: "content: bar"},
+			outFile: &File{Version: 2, Content: "content: foo"},
+		},
+		{
+			name:    "version upgrade from zero",
+			content: "content: foo",
+			version: 1,
+			inFile:  &File{Version: 0, Content: "content: bar"},
+			outFile: &File{Version: 1, Content: "content: foo"},
+		},
+		{
+			name:    "version downgrade (zero)",
+			content: "content: foo",
+			version: 0,
+			inFile:  &File{Version: 1, Content: "content: bar"},
+			outFile: &File{Version: 1, Content: "content: bar"},
+		},
+		{
+			name:    "version downgrade (non-zero)",
+			content: "content: foo",
+			version: 1,
+			inFile:  &File{Version: 2, Content: "content: bar"},
+			outFile: &File{Version: 2, Content: "content: bar"},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			file := &File{Version: 1}
-			file.Update(context.Background(), 2, tc.content)
+			tc.inFile.Update(context.Background(), tc.version, tc.content)
 
-			assert.Equal(t, tc.content, file.Content)
-			assert.Equal(t, 2, file.Version)
+			assert.Equal(t, tc.outFile.Content, tc.inFile.Content)
+			assert.Equal(t, tc.outFile.Version, tc.inFile.Version)
 		})
 	}
 }
@@ -396,22 +425,6 @@ apiVersion: n9/v1alpha
 			}
 		})
 	}
-}
-
-func TestFile_Update_NoVersionChange(t *testing.T) {
-	file := &File{Version: 1, Content: "old content"}
-	file.Update(context.Background(), 1, "new content")
-
-	assert.Equal(t, "old content", file.Content)
-	assert.Equal(t, 1, file.Version)
-}
-
-func TestFile_Update_ZeroVersion(t *testing.T) {
-	file := &File{Version: 1, Content: "old content"}
-	file.Update(context.Background(), 0, "new content")
-
-	assert.Equal(t, "new content", file.Content)
-	assert.Equal(t, 1, file.Version)
 }
 
 func TestSimpleObjectNode_FindLineByPath(t *testing.T) {

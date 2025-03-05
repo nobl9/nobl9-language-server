@@ -64,8 +64,7 @@ type Server struct {
 }
 
 type documentUpdateEvent struct {
-	Context context.Context
-	Item    messages.TextDocumentItem
+	Item messages.TextDocumentItem
 }
 
 func (s *Server) GetHandlers() map[string]mux.HandlerFunc {
@@ -149,8 +148,7 @@ func (s *Server) handleDidOpen(ctx context.Context, params messages.DidOpenParam
 		return nil, err
 	}
 	s.documentUpdates <- documentUpdateEvent{
-		Context: ctx,
-		Item:    params.TextDocument,
+		Item: params.TextDocument,
 	}
 	return nil, nil
 }
@@ -177,7 +175,6 @@ func (s *Server) handleDidChange(ctx context.Context, params messages.DidChangeP
 		return nil, err
 	}
 	s.documentUpdates <- documentUpdateEvent{
-		Context: ctx,
 		Item: messages.TextDocumentItem{
 			URI:     params.TextDocument.URI,
 			Version: params.TextDocument.Version,
@@ -194,19 +191,26 @@ func (s *Server) runDiagnosticsLoop() {
 }
 
 func (s *Server) handleSingleUpdateDiagnostics(update documentUpdateEvent) {
+	ctx := logging.ContextAttr(context.Background(),
+		slog.String("uri", update.Item.URI),
+		slog.String("language", update.Item.LanguageID),
+		slog.Int("version", update.Item.Version))
 	defer func() {
-		recovery.LogPanic(update.Context, s.conn, recover())
+		recovery.LogPanic(ctx, s.conn, recover())
 	}()
+	slog.DebugContext(ctx, "evaluating diagnostics")
 
-	params, err := s.handlers.Diagnostics(update.Context, update.Item)
+	params, err := s.handlers.Diagnostics(ctx, update.Item)
 	if err != nil {
-		slog.ErrorContext(update.Context, "failed to diagnose file", slog.Any("error", err))
+		slog.ErrorContext(ctx, "failed to diagnose file", slog.Any("error", err))
 	}
+	slog.DebugContext(ctx, "evaluated diagnostics", slog.Any("params", params))
 	if params == nil {
 		return
 	}
-	if err = s.notifier.Notify(update.Context, messages.PublishDiagnosticsMethod, params); err != nil {
-		slog.ErrorContext(update.Context, "failed to send diagnostics", slog.Any("error", err))
+
+	if err = s.notifier.Notify(ctx, messages.PublishDiagnosticsMethod, params); err != nil {
+		slog.ErrorContext(ctx, "failed to send diagnostics", slog.Any("error", err))
 	}
 }
 
