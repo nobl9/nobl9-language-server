@@ -195,6 +195,9 @@ func (s *Server) handleSingleUpdateDiagnostics(update documentUpdateEvent) {
 		slog.String("uri", update.Item.URI),
 		slog.String("language", update.Item.LanguageID),
 		slog.Int("version", update.Item.Version))
+	span, ctx := logging.StartSpan(ctx, "handle_diagnostics")
+	defer span.Finish()
+
 	defer func() {
 		recovery.LogPanic(ctx, s.conn, recover())
 	}()

@@ -39,6 +39,7 @@ func StartSpan(ctx context.Context, name string) (Span, context.Context) {
 	// skip [runtime.Callers, this function]
 	runtime.Callers(2, pcs[:])
 	span := &spanHandler{
+		ctx:   ctx,
 		name:  name,
 		start: time.Now(),
 		pc:    pcs[0],

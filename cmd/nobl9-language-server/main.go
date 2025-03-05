@@ -50,7 +50,7 @@ func run() int {
 
 func bootstrap() (*jsonrpc2.Conn, error) {
 	ctx := context.Background()
-	span, ctx := logging.StartSpan(ctx, "bootstrap")
+	span, _ := logging.StartSpan(ctx, "bootstrap")
 	defer span.Finish()
 
 	srv, err := server.New(ctx, LspVersion)

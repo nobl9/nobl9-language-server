@@ -41,6 +41,9 @@ func (m *Mux) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Req
 	ctx = logging.ContextAttr(ctx,
 		slog.String("id", req.ID.String()),
 		slog.String("method", req.Method))
+	span, ctx := logging.StartSpan(ctx, "mux_handle")
+	defer span.Finish()
+
 	if logging.GetLogLevel() <= slog.LevelDebug {
 		var params any
 		if req.Params != nil {
@@ -51,6 +54,7 @@ func (m *Mux) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Req
 		}
 		slog.DebugContext(ctx, "received request", slog.Any("params", params))
 	}
+
 	handle, ok := m.handlers[req.Method]
 	if !ok {
 		slog.ErrorContext(ctx, "method handler not found")
