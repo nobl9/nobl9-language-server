@@ -200,7 +200,8 @@ kind: Service`,
 - kind: Service`,
 			expectedAST: SimpleObjectFile{
 				{
-					Version: manifest.VersionV1alpha,
+					Version:       manifest.VersionV1alpha,
+					isListElement: true,
 					Doc: &yamlastsimple.Document{
 						Offset: 0,
 						Lines: []*yamlastsimple.Line{
@@ -209,7 +210,8 @@ kind: Service`,
 					},
 				},
 				{
-					Kind: manifest.KindService,
+					Kind:          manifest.KindService,
+					isListElement: true,
 					Doc: &yamlastsimple.Document{
 						Offset: 1,
 						Lines: []*yamlastsimple.Line{
@@ -236,8 +238,9 @@ kind: Service`,
     description: My service`,
 			expectedAST: SimpleObjectFile{
 				{
-					Version: manifest.VersionV1alpha,
-					Kind:    manifest.KindProject,
+					Version:       manifest.VersionV1alpha,
+					Kind:          manifest.KindProject,
+					isListElement: true,
 					Doc: &yamlastsimple.Document{
 						Offset: 0,
 						Lines: []*yamlastsimple.Line{
@@ -251,8 +254,9 @@ kind: Service`,
 					},
 				},
 				{
-					Version: manifest.VersionV1alpha,
-					Kind:    manifest.KindService,
+					Version:       manifest.VersionV1alpha,
+					Kind:          manifest.KindService,
+					isListElement: true,
 					Doc: &yamlastsimple.Document{
 						Offset: 6,
 						Lines: []*yamlastsimple.Line{
@@ -281,8 +285,9 @@ apiVersion: n9/v1alpha
 `,
 			expectedAST: SimpleObjectFile{
 				{
-					Version: manifest.VersionV1alpha,
-					Kind:    manifest.KindProject,
+					Version:       manifest.VersionV1alpha,
+					Kind:          manifest.KindProject,
+					isListElement: true,
 					Doc: &yamlastsimple.Document{
 						Offset: 0,
 						Lines: []*yamlastsimple.Line{
@@ -292,8 +297,9 @@ apiVersion: n9/v1alpha
 					},
 				},
 				{
-					Version: manifest.VersionV1alpha,
-					Kind:    manifest.KindService,
+					Version:       manifest.VersionV1alpha,
+					Kind:          manifest.KindService,
+					isListElement: true,
 					Doc: &yamlastsimple.Document{
 						Offset: 2,
 						Lines: []*yamlastsimple.Line{
@@ -314,7 +320,8 @@ apiVersion: n9/v1alpha
 					},
 				},
 				{
-					Kind: manifest.KindProject,
+					Kind:          manifest.KindProject,
+					isListElement: true,
 					Doc: &yamlastsimple.Document{
 						Offset: 7,
 						Lines: []*yamlastsimple.Line{
@@ -337,6 +344,7 @@ apiVersion: n9/v1alpha
 				assert.Equal(t, tc.expectedAST[i].Version, node.Version)
 				assert.Equal(t, tc.expectedAST[i].Kind, node.Kind)
 				assert.Equal(t, tc.expectedAST[i].Doc.Offset, node.Doc.Offset)
+				assert.Equal(t, tc.expectedAST[i].isListElement, node.isListElement)
 				require.Len(t, node.Doc.Lines, len(tc.expectedAST[i].Doc.Lines))
 				for j, line := range node.Doc.Lines {
 					assert.Equal(t, tc.expectedAST[i].Doc.Lines[j].Path, line.Path, "line %d", j)
@@ -360,4 +368,69 @@ func TestFile_Update_ZeroVersion(t *testing.T) {
 
 	assert.Equal(t, "new content", file.Content)
 	assert.Equal(t, 1, file.Version)
+}
+
+func TestSimpleObjectNode_FindLineByPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		content  string
+		path     string
+		expected *yamlastsimple.Line
+	}{
+		{
+			name: "find existing path",
+			content: `metadata:
+  project: default
+  name: this`,
+			path:     "$.metadata.name",
+			expected: &yamlastsimple.Line{Path: "$.metadata.name"},
+		},
+		{
+			name: "find non-existing path",
+			content: `metadata:
+  project: default
+  name: this`,
+			path:     "$.metadata.description",
+			expected: nil,
+		},
+		{
+			name: "find path with list index within list element",
+			content: `- metadata:
+    project: default
+    name: this`,
+			path:     "$[0].metadata.name",
+			expected: &yamlastsimple.Line{Path: "$[0].metadata.name"},
+		},
+		{
+			name: "find path without list index within list element",
+			content: `- metadata:
+    project: default
+    name: this`,
+			path:     "$.metadata.name",
+			expected: &yamlastsimple.Line{Path: "$[0].metadata.name"},
+		},
+		{
+			name: "find path with list index within document",
+			content: `metadata:
+  project: default
+  name: this`,
+			path:     "$[0].metadata.name",
+			expected: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file, err := parseSimpleObjectFile(tt.content)
+			require.NoError(t, err)
+			require.Len(t, file, 1)
+			result := file[0].FindLineByPath(tt.path)
+			if tt.expected == nil {
+				assert.Nil(t, result)
+				return
+			}
+			require.NotNil(t, result)
+			assert.Equal(t, tt.expected.Path, result.Path)
+		})
+	}
 }

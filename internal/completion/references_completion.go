@@ -133,7 +133,7 @@ func (p ReferencesCompletionProvider) completeRoleBindingRoles(
 		return nil
 	}
 	var roles []nobl9repo.Role
-	if node.Doc.FindLineByPath("$.spec.projectRef") == nil {
+	if node.FindLineByPath("$.spec.projectRef") == nil {
 		roles = append(roles, rolesResp.OrganizationRoles...)
 	} else {
 		roles = append(roles, rolesResp.ProjectRoles...)

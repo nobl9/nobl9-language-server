@@ -2,6 +2,7 @@ package files
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"github.com/nobl9/nobl9-go/manifest"
@@ -48,6 +49,26 @@ type SimpleObjectNode struct {
 	Kind    manifest.Kind
 	Version manifest.Version
 	Doc     *yamlastsimple.Document
+	// isListElement is true if the object node is a list element.
+	isListElement    bool
+	listElementIndex int
+}
+
+// FindLineByPath returns the [yamlastsimple.Line] which has the specified path.
+// If the [SimpleObjectNode] is a list element and path does not have list prefix
+// the appropriate list index will be prepended.
+func (s SimpleObjectNode) FindLineByPath(path string) *yamlastsimple.Line {
+	if s.isListElement && !strings.HasPrefix(path, "$[") {
+		if len(path) > 0 {
+			path = path[:0] + "$[" + strconv.Itoa(s.listElementIndex) + "]" + path[1:]
+		}
+	}
+	for _, line := range s.Doc.Lines {
+		if line.Path == path {
+			return line
+		}
+	}
+	return nil
 }
 
 // FindObject returns the [ObjectNode] which spans over the specified line.
@@ -128,8 +149,11 @@ func parseSimpleObjectFile(content string) (SimpleObjectFile, error) {
 			if err != nil {
 				return nil, err
 			}
-			for _, d := range docs {
-				file = append(file, parseSimpleObjectNode(d))
+			for i, d := range docs {
+				node := parseSimpleObjectNode(d)
+				node.isListElement = true
+				node.listElementIndex = i
+				file = append(file, node)
 			}
 		default:
 			file = append(file, parseSimpleObjectNode(doc))
