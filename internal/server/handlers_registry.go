@@ -1,7 +1,6 @@
 package server
 
 import (
-	"github.com/nobl9/nobl9-go/sdk"
 	"github.com/pkg/errors"
 
 	"github.com/nobl9/nobl9-language-server/internal/codeactions"
@@ -24,11 +23,13 @@ type handlersRegistry struct {
 
 func newHandlersRegistry(
 	filesystem *files.FS,
-	sdkClient *sdk.Client,
 	notifier *rpcConnectionNotifier,
 ) (*handlersRegistry, error) {
 	// Common dependencies.
-	objectsRepo := nobl9repo.NewRepo(sdkClient)
+	objectsRepo, err := nobl9repo.NewRepo()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to setup Nobl9 API repository")
+	}
 	sdkDocs, err := sdkdocs.New()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to setup SDK docs provider")

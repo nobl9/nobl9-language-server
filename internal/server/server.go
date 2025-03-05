@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 
 	v1alphaParser "github.com/nobl9/nobl9-go/manifest/v1alpha/parser"
-	"github.com/nobl9/nobl9-go/sdk"
 	"github.com/sourcegraph/jsonrpc2"
 
 	"github.com/nobl9/nobl9-language-server/internal/codeactions"
@@ -28,13 +27,9 @@ func New(ctx context.Context, lspVersion string) (*Server, error) {
 	defer span.Finish()
 
 	var conn *jsonrpc2.Conn
-	sdkClient, err := sdk.DefaultClient()
-	if err != nil {
-		return nil, err
-	}
 	filesystem := files.NewFS()
 	notifier := &rpcConnectionNotifier{conn: conn}
-	registry, err := newHandlersRegistry(filesystem, sdkClient, notifier)
+	registry, err := newHandlersRegistry(filesystem, notifier)
 	if err != nil {
 		return nil, err
 	}

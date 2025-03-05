@@ -3,7 +3,6 @@ package nobl9repo
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"sync"
@@ -13,11 +12,16 @@ import (
 	v1objects "github.com/nobl9/nobl9-go/sdk/endpoints/objects/v1"
 )
 
-func NewRepo(client *sdk.Client) *Repo {
+func NewRepo() (*Repo, error) {
+	client, err := sdk.DefaultClient()
+	if err != nil {
+		return nil, err
+	}
+	client.HTTP = &http.Client{Transport: newResponseCache(client.HTTP)}
 	return &Repo{
 		client:  client,
 		objects: make(map[manifest.Kind]map[objectProject][]objectName),
-	}
+	}, nil
 }
 
 type Repo struct {
@@ -44,7 +48,6 @@ func (r *Repo) Delete(ctx context.Context, objects []manifest.Object) error {
 }
 
 func (r *Repo) GetAllNames(ctx context.Context, kind manifest.Kind, project string) []string {
-	r.init(ctx)
 	return r.objects[kind][project]
 }
 
@@ -138,20 +141,15 @@ func (r *Repo) GetRoles(ctx context.Context) (*Roles, error) {
 	return &roles, nil
 }
 
-func (r *Repo) init(ctx context.Context) {
-	r.once.Do(func() {
-		projects, err := r.client.Objects().V1().GetV1alphaProjects(ctx, v1objects.GetProjectsRequest{})
-		if err != nil {
-			slog.Error("failed to fetch projects", slog.Any("error", err))
-		}
-		r.objects[manifest.KindProject] = map[objectProject][]objectName{
-			"": make([]objectName, 0, len(projects)),
-		}
-		for _, project := range projects {
-			r.objects[manifest.KindProject][""] = append(
-				r.objects[manifest.KindProject][""],
-				project.GetName(),
-			)
-		}
-	})
+func (r *Repo) getObjects(ctx context.Context, kind manifest.Kind, project string) ([]manifest.Object, error) {
+	header := http.Header{}
+	if project != "" {
+		header.Set(sdk.HeaderProject, project)
+	}
+	return r.client.Objects().V1().Get(
+		ctx,
+		kind,
+		header,
+		url.Values{},
+	)
 }

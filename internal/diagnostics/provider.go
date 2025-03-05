@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"sync"
+	"sync/atomic"
 
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
@@ -58,41 +60,65 @@ func (d Provider) DiagnoseFile(ctx context.Context, file *files.File) []messages
 	if file.Err != nil {
 		return astErrorToDiagnostics(file.Err, 0)
 	}
-	var diagnostics []messages.Diagnostic
-	for _, object := range file.Objects {
-		if object.Err != nil {
-			diagnostics = append(diagnostics, astErrorToDiagnostics(object.Err, object.Node.StartLine)...)
-			continue
-		}
-		diagnostics = append(diagnostics, d.validateObject(ctx, object)...)
+
+	numDiags := atomic.Int64{}
+	ch := make(chan []messages.Diagnostic, len(file.Objects))
+	wg := sync.WaitGroup{}
+	wg.Add(len(file.Objects))
+	for i, object := range file.Objects {
+		go func() {
+			defer wg.Done()
+			diags := d.diagnoseObject(ctx, object, file.SimpleAST[i])
+			if len(diags) > 0 {
+				numDiags.Add(int64(len(diags)))
+			}
+			ch <- diags
+		}()
 	}
-	for _, object := range file.SimpleAST {
-		diagnostics = append(diagnostics, d.checkDeprecated(object)...)
+	wg.Wait()
+
+	diagnostics := make([]messages.Diagnostic, 0, numDiags.Load())
+	for range file.Objects {
+		diagnostics = append(diagnostics, <-ch...)
 	}
 	return diagnostics
 }
 
+func (d Provider) diagnoseObject(
+	ctx context.Context,
+	object *files.ObjectNode,
+	simpleObject *files.SimpleObjectNode,
+) []messages.Diagnostic {
+	if object.Err != nil {
+		return astErrorToDiagnostics(object.Err, object.Node.StartLine)
+	}
+	objectValidityDiags := d.validateObject(ctx, object)
+	diagnostics := append(objectValidityDiags, d.checkDeprecated(simpleObject)...)
+	// Only check referenced objects if the object is valid.
+	if len(objectValidityDiags) > 0 {
+		return diagnostics
+	}
+	diagnostics = append(diagnostics, d.checkReferencedObjects(ctx, object)...)
+	return diagnostics
+}
+
 func (d Provider) validateObject(ctx context.Context, object *files.ObjectNode) []messages.Diagnostic {
-	var diagnostics []messages.Diagnostic
 	err := object.Object.Validate()
 	if err == nil {
-		diagnostics = append(diagnostics, d.checkReferencedObjects(ctx, object)...)
-		return diagnostics
+		return nil
 	}
 	var oErr *v1alpha.ObjectError
 	if ok := errors.As(err, &oErr); ok {
-		if oDiags := objectValidationErrorToDiagnostics(ctx, oErr, object.Node); len(oDiags) > 0 {
-			diagnostics = append(diagnostics, oDiags...)
+		if diags := objectValidationErrorToDiagnostics(ctx, oErr, object.Node); len(diags) > 0 {
+			return diags
 		}
-	} else {
-		diagnostics = append(diagnostics, messages.Diagnostic{
-			Range:    newLineRange(object.Node.StartLine, 0, 0),
-			Severity: messages.DiagnosticSeverityError,
-			Source:   ptr(config.ServerName),
-			Message:  err.Error(),
-		})
 	}
-	return diagnostics
+	return []messages.Diagnostic{{
+		Range:    newLineRange(object.Node.StartLine, 0, 0),
+		Severity: messages.DiagnosticSeverityError,
+		Source:   ptr(config.ServerName),
+		Message:  err.Error(),
+	}}
 }
 
 func (d Provider) checkReferencedObjects(ctx context.Context, object *files.ObjectNode) []messages.Diagnostic {
