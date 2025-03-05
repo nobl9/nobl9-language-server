@@ -146,6 +146,11 @@ kind: Service
 metadata:
   name: my-service
   project: default
+  labels:
+    team:
+    - green
+    - orange
+    - gray
 spec:
   description: My service`,
 			expectedAST: SimpleObjectFile{
@@ -160,6 +165,11 @@ spec:
 							{Path: "$.metadata"},
 							{Path: "$.metadata.name"},
 							{Path: "$.metadata.project"},
+							{Path: "$.metadata.labels"},
+							{Path: "$.metadata.labels.team"},
+							{Path: "$.metadata.labels.team[0]"},
+							{Path: "$.metadata.labels.team[1]"},
+							{Path: "$.metadata.labels.team[2]"},
 							{Path: "$.spec"},
 							{Path: "$.spec.description"},
 						},
@@ -226,14 +236,26 @@ kind: Service`,
 			content: `- apiVersion: n9/v1alpha
   kind: Project
   metadata:
-    name: my-project
+    name: my-project-1
   spec:
     description: My project
 - kind: Service
   apiVersion: n9/v1alpha
   metadata:
-    name: my-service
+    name: my-service-2
     project: default
+  spec:
+    description: My service
+- kind: Service
+  apiVersion: n9/v1alpha
+  metadata:
+    name: my-service-3
+    project: default
+    labels:
+      team:
+      - green
+      - gray
+      - orange
   spec:
     description: My service`,
 			expectedAST: SimpleObjectFile{
@@ -267,6 +289,28 @@ kind: Service`,
 							{Path: "$[1].metadata.project"},
 							{Path: "$[1].spec"},
 							{Path: "$[1].spec.description"},
+						},
+					},
+				},
+				{
+					Version:       manifest.VersionV1alpha,
+					Kind:          manifest.KindService,
+					isListElement: true,
+					Doc: &yamlastsimple.Document{
+						Offset: 13,
+						Lines: []*yamlastsimple.Line{
+							{Path: "$[2].kind"},
+							{Path: "$[2].apiVersion"},
+							{Path: "$[2].metadata"},
+							{Path: "$[2].metadata.name"},
+							{Path: "$[2].metadata.project"},
+							{Path: "$[2].metadata.labels"},
+							{Path: "$[2].metadata.labels.team"},
+							{Path: "$[2].metadata.labels.team[0]"},
+							{Path: "$[2].metadata.labels.team[1]"},
+							{Path: "$[2].metadata.labels.team[2]"},
+							{Path: "$[2].spec"},
+							{Path: "$[2].spec.description"},
 						},
 					},
 				},

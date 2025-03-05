@@ -223,12 +223,13 @@ func postProcessPaths(parsedLines []*Line) []*Line {
 			// Parent.
 			if prevLine.indent < line.indent {
 				line.Path = prevLine.Path + "[0]." + line.Path
-				prevLine.Path += "[*]"
+				//prevLine.Path += "[*]"
 				break
 			}
 			// Sibling.
 			if bracketIdx := strings.LastIndex(prevLine.Path, "["); bracketIdx != -1 {
-				line.Path = prevLine.Path[:bracketIdx] + "[" + strconv.Itoa(prevLine.listIndex+1) + "]." + line.Path
+				line.listIndex = prevLine.listIndex + 1
+				line.Path = prevLine.Path[:bracketIdx] + "[" + strconv.Itoa(line.listIndex) + "]." + line.Path
 			}
 		default:
 			prevLine := findPreviousLine(parsedLines, i)
@@ -243,6 +244,7 @@ func postProcessPaths(parsedLines []*Line) []*Line {
 			}
 			// Sibling.
 			if dotIndex := strings.LastIndex(prevLine.Path, "."); dotIndex != -1 {
+				line.listIndex = prevLine.listIndex
 				line.Path = prevLine.Path[:dotIndex] + "." + line.Path
 			}
 		}
@@ -323,7 +325,7 @@ func generalizePath(path string) string {
 	if path[0] == '$' && path[1] == '[' {
 		closingBracketIndex := strings.IndexRune(path, ']')
 		if closingBracketIndex != -1 {
-			return "$" + path[closingBracketIndex+1:]
+			path = "$" + path[closingBracketIndex+1:]
 		}
 	}
 	return replaceListIndicesWithWildcards(path)

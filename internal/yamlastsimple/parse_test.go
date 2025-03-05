@@ -163,7 +163,7 @@ spec:
 							{Path: "$.metadata.annotations", indent: 2, Type: LineTypeMapping},
 							{Path: "$.metadata.annotations.app", indent: 4, Type: LineTypeMapping},
 							{Path: "$.metadata.labels", indent: 2, Type: LineTypeMapping},
-							{Path: "$.metadata.labels.team[*]", indent: 4, Type: LineTypeMapping},
+							{Path: "$.metadata.labels.team", indent: 4, Type: LineTypeMapping},
 							{Path: "$.metadata.labels.team[0]", GeneralizedPath: "$.metadata.labels.team[*]", indent: 8, Type: LineTypeList},
 							{Path: "$.metadata.labels.team[1]", GeneralizedPath: "$.metadata.labels.team[*]", indent: 8, Type: LineTypeList},
 							{Path: "$.metadata.displayName", indent: 2, Type: LineTypeMapping},
@@ -185,7 +185,7 @@ displayName: My Service`,
 					{
 						Lines: []*Line{
 							{Path: "$.labels", indent: 0, Type: LineTypeMapping},
-							{Path: "$.labels.team[*]", indent: 2, Type: LineTypeMapping},
+							{Path: "$.labels.team", indent: 2, Type: LineTypeMapping},
 							{Path: "$.labels.team[0]", GeneralizedPath: "$.labels.team[*]", indent: 4, Type: LineTypeList},
 							{Path: "$.labels.team[1]", GeneralizedPath: "$.labels.team[*]", indent: 4, Type: LineTypeList},
 							{Path: "$.displayName", indent: 0, Type: LineTypeMapping},
@@ -204,6 +204,7 @@ metadata:
         list:
         - dev
         - ops
+        - prod
     - team: green
   displayName: my-service-1`,
 			out: File{
@@ -212,15 +213,40 @@ metadata:
 						Lines: []*Line{
 							{Path: "$", indent: 0, Type: LineTypeEmpty},
 							{Path: "$.metadata", indent: 0, Type: LineTypeMapping},
-							{Path: "$.metadata.annotations[*]", indent: 2, Type: LineTypeMapping},
+							{Path: "$.metadata.annotations", indent: 2, Type: LineTypeMapping},
 							{Path: "$.metadata.annotations[0].app", GeneralizedPath: "$.metadata.annotations[*].app", indent: 6, Type: LineTypeList | LineTypeMapping},
 							{Path: "$.metadata.annotations[0].my-app", GeneralizedPath: "$.metadata.annotations[*].my-app", indent: 6, Type: LineTypeMapping},
 							{Path: "$.metadata.annotations[0].my-app.foo", GeneralizedPath: "$.metadata.annotations[*].my-app.foo", indent: 8, Type: LineTypeMapping},
-							{Path: "$.metadata.annotations[0].my-app.list[*]", GeneralizedPath: "$.metadata.annotations[*].my-app.list[*]", indent: 8, Type: LineTypeMapping},
+							{Path: "$.metadata.annotations[0].my-app.list", GeneralizedPath: "$.metadata.annotations[*].my-app.list", indent: 8, Type: LineTypeMapping},
 							{Path: "$.metadata.annotations[0].my-app.list[0]", GeneralizedPath: "$.metadata.annotations[*].my-app.list[*]", indent: 10, Type: LineTypeList},
 							{Path: "$.metadata.annotations[0].my-app.list[1]", GeneralizedPath: "$.metadata.annotations[*].my-app.list[*]", indent: 10, Type: LineTypeList},
+							{Path: "$.metadata.annotations[0].my-app.list[2]", GeneralizedPath: "$.metadata.annotations[*].my-app.list[*]", indent: 10, Type: LineTypeList},
 							{Path: "$.metadata.annotations[1].team", GeneralizedPath: "$.metadata.annotations[*].team", indent: 6, Type: LineTypeList | LineTypeMapping},
 							{Path: "$.metadata.displayName", indent: 2, Type: LineTypeMapping},
+						},
+					},
+				},
+			},
+		},
+		"list of simple documents": {
+			in: `- metadata:
+- metadata:
+  - foo
+- metadata:
+  - foo
+  - bar
+  - baz`,
+			out: File{
+				Docs: []*Document{
+					{
+						Lines: []*Line{
+							{Path: "$[0].metadata", GeneralizedPath: "$.metadata", indent: 2, Type: LineTypeList | LineTypeMapping},
+							{Path: "$[1].metadata", GeneralizedPath: "$.metadata", indent: 2, Type: LineTypeList | LineTypeMapping},
+							{Path: "$[1].metadata[0]", GeneralizedPath: "$.metadata[*]", indent: 4, Type: LineTypeList},
+							{Path: "$[2].metadata", GeneralizedPath: "$.metadata", indent: 2, Type: LineTypeList | LineTypeMapping},
+							{Path: "$[2].metadata[0]", GeneralizedPath: "$.metadata[*]", indent: 4, Type: LineTypeList},
+							{Path: "$[2].metadata[1]", GeneralizedPath: "$.metadata[*]", indent: 4, Type: LineTypeList},
+							{Path: "$[2].metadata[2]", GeneralizedPath: "$.metadata[*]", indent: 4, Type: LineTypeList},
 						},
 					},
 				},
@@ -233,7 +259,9 @@ metadata:
       app: my-app
     displayName: my-service-2
 - metadata: foo
-  displayName: my-service-1`,
+  displayName: my-service-2
+- metadata: foo
+  displayName: my-service-3`,
 			out: File{
 				Docs: []*Document{
 					{
@@ -245,6 +273,8 @@ metadata:
 							{Path: "$[0].metadata.displayName", GeneralizedPath: "$.metadata.displayName", indent: 4, Type: LineTypeMapping},
 							{Path: "$[1].metadata", GeneralizedPath: "$.metadata", indent: 2, Type: LineTypeList | LineTypeMapping},
 							{Path: "$[1].displayName", GeneralizedPath: "$.displayName", indent: 2, Type: LineTypeMapping},
+							{Path: "$[2].metadata", GeneralizedPath: "$.metadata", indent: 2, Type: LineTypeList | LineTypeMapping},
+							{Path: "$[2].displayName", GeneralizedPath: "$.displayName", indent: 2, Type: LineTypeMapping},
 						},
 					},
 				},
@@ -380,6 +410,7 @@ name: my-service
 				for _, line := range doc.Lines {
 					line.value = ""
 					line.valueColonIdx = 0
+					line.listIndex = 0
 				}
 			}
 			for _, doc := range tc.out.Docs {
@@ -563,6 +594,7 @@ func Test_generalizePath(t *testing.T) {
 		{Input: "$[5].A.B", Expected: "$.A.B"},
 		{Input: "$.A[1].B[3]", Expected: "$.A[*].B[*]"},
 		{Input: "$.A[10].B[300]", Expected: "$.A[*].B[*]"},
+		{Input: "$[0].spec.alertMethods[0].metadata.project", Expected: "$.spec.alertMethods[*].metadata.project"},
 	}
 	for _, test := range tests {
 		t.Run(test.Input, func(t *testing.T) {

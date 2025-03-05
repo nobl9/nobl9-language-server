@@ -80,16 +80,9 @@ func (p ReferencesCompletionProvider) completeObjectNames(
 	node *files.SimpleObjectNode,
 	ref *objectref.Reference,
 ) []messages.CompletionItem {
-	var projectName string
-	if ref.ProjectPath != "" {
-		projectName = getLineValueForPath(node.Doc, ref.ProjectPath)
-		if projectName == "" {
-			fallbackProjectPath := ref.FallbackProjectPath(ref.Kind)
-			projectName = getLineValueForPath(node.Doc, fallbackProjectPath)
-		}
-		if projectName == "" && objectref.IsProjectScoped(ref.Kind) {
-			return nil
-		}
+	projectName := getProjectNameFromRef(node, ref)
+	if projectName == "" && objectref.IsProjectScoped(ref.Kind) {
+		return nil
 	}
 	names := p.repo.GetAllNames(ctx, ref.Kind, projectName)
 	items := make([]messages.CompletionItem, 0, len(names))
@@ -153,7 +146,7 @@ func (p ReferencesCompletionProvider) completeSLOMetricSourceName(
 	node *files.SimpleObjectNode,
 	ref *objectref.Reference,
 ) []messages.CompletionItem {
-	rawKind := getLineValueForPath(node.Doc, "$.spec.indicator.metricSource.kind")
+	rawKind := getLineValueForPath(node, "$.spec.indicator.metricSource.kind")
 	kind, err := manifest.ParseKind(rawKind)
 	if err == nil {
 		return nil
@@ -170,11 +163,11 @@ func (p ReferencesCompletionProvider) completeObjectiveNames(
 	node *files.SimpleObjectNode,
 	ref *objectref.Reference,
 ) []messages.CompletionItem {
-	sloName := getLineValueForPath(node.Doc, ref.ProjectPath)
+	sloName := getLineValueForPath(node, ref.SLOPath)
 	if sloName == "" {
 		return nil
 	}
-	projectName := getLineValueForPath(node.Doc, ref.ProjectPath)
+	projectName := getProjectNameFromRef(node, ref)
 	if projectName == "" {
 		return nil
 	}
@@ -198,8 +191,20 @@ func (p ReferencesCompletionProvider) completeObjectiveNames(
 	return items
 }
 
-func getLineValueForPath(doc *yamlastsimple.Document, path string) string {
-	line := doc.FindLineByPath(path)
+func getProjectNameFromRef(node *files.SimpleObjectNode, ref *objectref.Reference) string {
+	if ref.ProjectPath == "" {
+		return ""
+	}
+	projectName := getLineValueForPath(node, ref.ProjectPath)
+	if projectName == "" {
+		fallbackProjectPath := ref.FallbackProjectPath(ref.Kind)
+		projectName = getLineValueForPath(node, fallbackProjectPath)
+	}
+	return projectName
+}
+
+func getLineValueForPath(node *files.SimpleObjectNode, path string) string {
+	line := node.FindLineByPath(path)
 	if line == nil {
 		return ""
 	}

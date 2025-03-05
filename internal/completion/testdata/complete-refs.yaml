@@ -147,3 +147,176 @@ spec:
     groupRef: default
     roleRef: organ
 ---
+- apiVersion: n9/v1alpha
+  kind: AlertPolicy
+  metadata:
+    displayName: Remaining budget exhaustion in 3d
+    project: default
+    labels:
+      type:
+        - time-exhaustion
+    name: remaining-exhaustion-prediction-3d-1
+  spec:
+    alertMethods:
+      - metadata:
+          name: default
+          project: default
+    conditions:
+      - lastsFor: 15m
+        measurement: timeToBurnBudget
+        op: lt
+        value: 72h
+    coolDown: 15m
+    description: Remaining error budget Allocation prediction
+    severity: Medium
+- apiVersion: n9/v1alpha
+  kind: AlertPolicy
+  metadata:
+    displayName: Remaining budget exhaustion in 3d
+    project: default
+    labels:
+      type:
+        - time-exhaustion
+    name: remaining-exhaustion-prediction-3d-2
+  spec:
+    alertMethods:
+      - metadata:
+          name: default
+    conditions:
+      - lastsFor: 15m
+        measurement: timeToBurnBudget
+        op: lt
+        value: 72h
+    coolDown: 15m
+    description: Remaining error budget Allocation prediction
+    severity: Medium
+---
+apiVersion: n9/v1alpha
+kind: UserGroup
+metadata:
+  name: my-group-1
+spec:
+  displayName: My Group
+  members:
+    - id: some
+---
+- apiVersion: n9/v1alpha
+  kind: SLO
+  metadata:
+    displayName: datadog-calendar-timeslices-threshold
+    name: datadog-calendar-timeslices-threshold-1
+    project: default
+  spec:
+    budgetingMethod: Timeslices
+    description: ""
+    indicator:
+      metricSource:
+        name: datadog
+        project: default
+    service: datadog-n9
+    alertPolicies: [foo]
+    objectives:
+      - target: 0.7
+        op: lte
+        rawMetric:
+          query:
+            datadog:
+              query: avg:trace.http.request.duration.by_http_status{http.status_code:200}
+        displayName: doable
+        timeSliceTarget: 0.7
+        value: 0.2
+        name: objective-1
+    timeWindows:
+      - calendar:
+          startTime: "2020-11-14 12:30:00"
+          timeZone: Etc/UTC
+        count: 1
+        isRolling: false
+        unit: Day
+    anomalyConfig:
+      noData:
+        alertMethods:
+          - name: default
+            project: default
+- apiVersion: n9/v1alpha
+  kind: SLO
+  metadata:
+    displayName: datadog-calendar-timeslices-threshold
+    name: datadog-calendar-timeslices-threshold-2
+    project: default
+  spec:
+    budgetingMethod: Timeslices
+    description: ""
+    indicator:
+      metricSource:
+        name: datadog
+    service: datadog-n9
+    alertPolicies: [foo]
+    objectives:
+      - target: 0.7
+        op: lte
+        rawMetric:
+          query:
+            datadog:
+              query: avg:trace.http.request.duration.by_http_status{http.status_code:200}
+        displayName: doable
+        timeSliceTarget: 0.7
+        value: 0.2
+        name: objective-1
+    timeWindows:
+      - calendar:
+          startTime: "2020-11-14 12:30:00"
+          timeZone: Etc/UTC
+        count: 1
+        isRolling: false
+        unit: Day
+    anomalyConfig:
+      noData:
+        alertMethods:
+          - name: default
+- apiVersion: n9/v1alpha
+  kind: SLO
+  metadata:
+    displayName: datadog-calendar-timeslices-composite
+    name: datadog-calendar-timeslices-composite-3
+    project: default
+  spec:
+    budgetingMethod: Timeslices
+    description: ""
+    service: default
+    alertPolicies: [default]
+    objectives:
+      - target: 0.7
+        op: lte
+        displayName: doable
+        timeSliceTarget: 0.7
+        value: 0.2
+        name: objective-1
+        composite:
+          maxDelay: 3m
+          components:
+            objectives:
+              - project: foo
+                slo: bar
+                objective: baz
+                whenDelayed: CountAsGood
+                weight: 0.5
+              - slo: bar
+                objective: baz
+                whenDelayed: CountAsGood
+                weight: 0.5
+              - objective: baz
+                whenDelayed: CountAsGood
+                weight: 0.5
+    timeWindows:
+      - calendar:
+          startTime: "2020-11-14 12:30:00"
+          timeZone: Etc/UTC
+        count: 1
+        isRolling: false
+        unit: Day
+    anomalyConfig:
+      noData:
+        alertMethods:
+          - name: slack-notification
+            project: foo

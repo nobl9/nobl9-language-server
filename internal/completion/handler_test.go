@@ -368,23 +368,37 @@ spec:
 
 func getReferenceCompletionTestCases() map[string]handlerTestCase {
 	tests := map[string]messages.Position{
-		"service project names - value start":         {Line: 4, Character: 11},
-		"service project names - value end":           {Line: 4, Character: 12},
-		"alert policy - alert method name":            {Line: 20, Character: 19},
-		"alert policy - alert method project":         {Line: 21, Character: 19},
-		"alert policy - default to metadata project":  {Line: 43, Character: 19},
-		"alert silence - alert policy name":           {Line: 62, Character: 17},
-		"alert silence - alert policy project":        {Line: 63, Character: 17},
-		"alert silence - default to metadata project": {Line: 76, Character: 14},
-		"annotation - slo project":                    {Line: 86, Character: 10},
-		"budget adjustment - slo name with project":   {Line: 105, Character: 19},
-		"report - project":                            {Line: 117, Character: 11},
-		"report - service":                            {Line: 120, Character: 18},
-		"report - service project":                    {Line: 121, Character: 18},
-		"report - slo":                                {Line: 124, Character: 18},
-		"report - slo project":                        {Line: 125, Character: 18},
-		"role binding - project ref":                  {Line: 140, Character: 20},
-		"role binding - group ref":                    {Line: 146, Character: 20},
+		"service project names - value start":                                   {Line: 4, Character: 11},
+		"service project names - value end":                                     {Line: 4, Character: 12},
+		"alert policy - alert method name":                                      {Line: 20, Character: 19},
+		"alert policy - alert method project":                                   {Line: 21, Character: 19},
+		"alert policy - default to metadata project":                            {Line: 43, Character: 19},
+		"alert silence - alert policy name":                                     {Line: 62, Character: 17},
+		"alert silence - alert policy project":                                  {Line: 63, Character: 17},
+		"alert silence - default to metadata project":                           {Line: 76, Character: 14},
+		"annotation - slo project":                                              {Line: 86, Character: 10},
+		"budget adjustment - slo name with project":                             {Line: 105, Character: 19},
+		"report - project":                                                      {Line: 117, Character: 11},
+		"report - service":                                                      {Line: 120, Character: 18},
+		"report - service project":                                              {Line: 121, Character: 18},
+		"report - slo":                                                          {Line: 124, Character: 18},
+		"report - slo project":                                                  {Line: 125, Character: 18},
+		"role binding - project ref":                                            {Line: 140, Character: 20},
+		"role binding - group ref":                                              {Line: 146, Character: 20},
+		"alert policy list - alert method name":                                 {Line: 161, Character: 22},
+		"alert policy list - alert method project":                              {Line: 162, Character: 22},
+		"alert policy list - default to metadata project":                       {Line: 183, Character: 22},
+		"slo - metric source name":                                              {Line: 213, Character: 19},
+		"slo - metric source project":                                           {Line: 214, Character: 19},
+		"slo - service":                                                         {Line: 215, Character: 17},
+		"slo - alert policy":                                                    {Line: 216, Character: 22},
+		"slo - anomaly config no data alert method name":                        {Line: 238, Character: 23},
+		"slo - anomaly config no data alert method project":                     {Line: 239, Character: 23},
+		"slo - metric source default to metadata project":                       {Line: 251, Character: 18},
+		"slo - anomaly config no data alert method default to metadata project": {Line: 275, Character: 21},
+		"slo - composite slo project":                                           {Line: 298, Character: 27},
+		"slo - composite slo name":                                              {Line: 299, Character: 27},
+		"slo - composite slo objective":                                         {Line: 300, Character: 29},
 	}
 
 	testCasesMap := make(map[string]handlerTestCase, len(tests))
@@ -407,9 +421,10 @@ func getReferenceCompletionTestCases() map[string]handlerTestCase {
 	}
 
 	noCompletionTests := map[string]messages.Position{
-		"budget adjustment - slo name with no project": {Line: 104, Character: 19},
-		"report - service with no project":             {Line: 119, Character: 17},
-		"report - slo with no project":                 {Line: 123, Character: 17},
+		"budget adjustment - slo name with no project":   {Line: 104, Character: 19},
+		"report - service with no project":               {Line: 119, Character: 17},
+		"report - slo with no project":                   {Line: 123, Character: 17},
+		"slo - composite slo objective with no slo name": {Line: 307, Character: 29},
 	}
 	for name, tc := range noCompletionTests {
 		testCasesMap[name] = handlerTestCase{
@@ -471,6 +486,25 @@ func getReferenceCompletionTestCases() map[string]handlerTestCase {
 		},
 		expected: []messages.CompletionItem{
 			{Label: "organization-admin", Kind: messages.ReferenceCompletion},
+		},
+	}
+	testCasesMap["user group - member id"] = handlerTestCase{
+		params: messages.CompletionParams{
+			TextDocumentPositionParams: messages.TextDocumentPositionParams{
+				TextDocument: getTestFileURI("complete-refs.yaml"),
+				Position: messages.Position{
+					Line:      200,
+					Character: 13,
+				},
+			},
+		},
+		expected: []messages.CompletionItem{
+			{
+				Label:            "Foo Bar (some@baz.com)",
+				Kind:             messages.ReferenceCompletion,
+				InsertText:       "foo",
+				InsertTextFormat: messages.PlainTextTextFormat,
+			},
 		},
 	}
 	return testCasesMap

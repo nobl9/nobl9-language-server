@@ -52,6 +52,18 @@ func TestGet(t *testing.T) {
 			},
 		},
 		{
+			kind: manifest.KindReport,
+			line: &yamlastsimple.Line{
+				Path:            "$[0].spec.filters.slos[0].name",
+				GeneralizedPath: "$.spec.filters.slos[*].name",
+			},
+			expected: &Reference{
+				Kind:        manifest.KindSLO,
+				Path:        "$.spec.filters.slos[*].name",
+				ProjectPath: "$.spec.filters.slos[0].project",
+			},
+		},
+		{
 			kind: manifest.KindSLO,
 			line: &yamlastsimple.Line{
 				Path:            "$.spec.objectives[2].composite.components.objectives[1].objective",

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/nobl9/nobl9-go/manifest"
 
@@ -24,11 +25,21 @@ func Get(kind manifest.Kind, line *yamlastsimple.Line) *Reference {
 		Kind: ref.Kind,
 		Path: ref.Path,
 	}
+	if ref.ProjectPath == "" && ref.SLOPath == "" {
+		return result
+	}
+	linePath := line.Path
+	if strings.HasPrefix(linePath, "$[") {
+		closingBracketIdx := strings.Index(linePath, "]")
+		if closingBracketIdx != -1 {
+			linePath = linePath[closingBracketIdx+1:]
+		}
+	}
 	if ref.ProjectPath != "" {
-		result.ProjectPath = calculateReferencedPath(line.Path, ref.ProjectPath)
+		result.ProjectPath = calculateReferencedPath(linePath, ref.ProjectPath)
 	}
 	if ref.SLOPath != "" {
-		result.SLOPath = calculateReferencedPath(line.Path, ref.SLOPath)
+		result.SLOPath = calculateReferencedPath(linePath, ref.SLOPath)
 	}
 	return result
 }
@@ -174,7 +185,7 @@ var objectReferences = func() map[manifest.Kind]map[string]*Reference {
 			appliesTo: []manifest.Kind{manifest.KindSLO},
 		},
 		{
-			Path:        "$.spec.alertPolicies[*]",
+			Path:        "$.spec.alertPolicies",
 			ProjectPath: "$.metadata.project",
 			Kind:        manifest.KindAlertPolicy,
 			appliesTo:   []manifest.Kind{manifest.KindSLO},
