@@ -3,9 +3,9 @@ package nobl9repo
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
-	"sync"
 
 	"github.com/nobl9/nobl9-go/manifest"
 	"github.com/nobl9/nobl9-go/sdk"
@@ -17,23 +17,16 @@ func NewRepo() (*Repo, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.HTTP = &http.Client{Transport: newResponseCache(client.HTTP)}
 	return &Repo{
-		client:  client,
-		objects: make(map[manifest.Kind]map[objectProject][]objectName),
+		client: client,
+		cache:  newDataCache(),
 	}, nil
 }
 
 type Repo struct {
-	objects map[manifest.Kind]map[objectProject][]objectName
-	client  *sdk.Client
-	once    sync.Once
+	cache  *dataCache
+	client *sdk.Client
 }
-
-type (
-	objectName    = string
-	objectProject = string
-)
 
 func (r *Repo) GetDefaultProject() string {
 	return r.client.Config.Project
@@ -47,11 +40,41 @@ func (r *Repo) Delete(ctx context.Context, objects []manifest.Object) error {
 	return r.client.Objects().V1().Delete(ctx, objects)
 }
 
-func (r *Repo) GetAllNames(ctx context.Context, kind manifest.Kind, project string) []string {
-	return r.objects[kind][project]
+func (r *Repo) GetAllNames(ctx context.Context, kind manifest.Kind, project string) ([]string, error) {
+	cacheKey := fmt.Sprintf("GetAllNames:%s:%s", kind, project)
+	if data, ok := r.cache.Get(ctx, cacheKey); ok {
+		names, _ := data.([]string)
+		return names, nil
+	}
+
+	header := http.Header{}
+	if project != "" {
+		header.Set(sdk.HeaderProject, project)
+	}
+	objects, err := r.client.Objects().V1().Get(
+		ctx,
+		kind,
+		header,
+		url.Values{},
+	)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(objects))
+	for _, obj := range objects {
+		names = append(names, obj.GetName())
+	}
+	r.cache.Put(cacheKey, names)
+	return names, nil
 }
 
 func (r *Repo) GetObject(ctx context.Context, kind manifest.Kind, name, project string) (manifest.Object, error) {
+	cacheKey := fmt.Sprintf("GetObject:%s:%s:%s", kind, name, project)
+	if data, ok := r.cache.Get(ctx, cacheKey); ok {
+		object, _ := data.(manifest.Object)
+		return object, nil
+	}
+
 	header := http.Header{}
 	if project != "" {
 		header.Set(sdk.HeaderProject, project)
@@ -70,8 +93,10 @@ func (r *Repo) GetObject(ctx context.Context, kind manifest.Kind, name, project 
 		return nil, err
 	}
 	if len(objects) == 0 {
+		r.cache.Put(cacheKey, nil)
 		return nil, nil
 	}
+	r.cache.Put(cacheKey, objects[0])
 	return objects[0], nil
 }
 
@@ -87,13 +112,21 @@ type User struct {
 }
 
 func (r *Repo) GetUser(ctx context.Context, id string) (*User, error) {
+	cacheKey := fmt.Sprintf("GetUser:%s", id)
+	if data, ok := r.cache.Get(ctx, cacheKey); ok {
+		user, _ := data.(*User)
+		return user, nil
+	}
+
 	users, err := r.GetUsers(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	if len(users) == 1 {
+		r.cache.Put(cacheKey, users[0])
 		return users[0], nil
 	}
+	r.cache.Put(cacheKey, nil)
 	return nil, nil
 }
 
@@ -125,6 +158,12 @@ type Role struct {
 }
 
 func (r *Repo) GetRoles(ctx context.Context) (*Roles, error) {
+	cacheKey := "GetRoles"
+	if data, ok := r.cache.Get(ctx, cacheKey); ok {
+		roles, _ := data.(*Roles)
+		return roles, nil
+	}
+
 	req, err := r.client.CreateRequest(ctx, http.MethodGet, "/usrmgmt/v2/users/search-filters", nil, nil, nil)
 	if err != nil {
 		return nil, err
@@ -138,18 +177,6 @@ func (r *Repo) GetRoles(ctx context.Context) (*Roles, error) {
 	if err = json.NewDecoder(resp.Body).Decode(&roles); err != nil {
 		return nil, err
 	}
+	r.cache.Put(cacheKey, &roles)
 	return &roles, nil
-}
-
-func (r *Repo) getObjects(ctx context.Context, kind manifest.Kind, project string) ([]manifest.Object, error) {
-	header := http.Header{}
-	if project != "" {
-		header.Set(sdk.HeaderProject, project)
-	}
-	return r.client.Objects().V1().Get(
-		ctx,
-		kind,
-		header,
-		url.Values{},
-	)
 }

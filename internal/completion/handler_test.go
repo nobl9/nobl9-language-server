@@ -588,14 +588,14 @@ type mockObjectsRepo struct {
 	names []string
 }
 
-func (m mockObjectsRepo) GetAllNames(_ context.Context, kind manifest.Kind, project string) []string {
+func (m mockObjectsRepo) GetAllNames(_ context.Context, kind manifest.Kind, project string) ([]string, error) {
 	if !objectref.IsProjectScoped(kind) {
-		return m.names
+		return m.names, nil
 	}
 	if project == "" {
 		panic("project must be set for kind " + kind.String())
 	}
-	return m.names
+	return m.names, nil
 }
 
 func (m mockObjectsRepo) GetObject(

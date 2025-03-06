@@ -17,7 +17,7 @@ import (
 )
 
 type objectsRepo interface {
-	GetAllNames(ctx context.Context, kind manifest.Kind, project string) []string
+	GetAllNames(ctx context.Context, kind manifest.Kind, project string) ([]string, error)
 	GetObject(ctx context.Context, kind manifest.Kind, name, project string) (manifest.Object, error)
 	GetUsers(ctx context.Context, phrase string) ([]*nobl9repo.User, error)
 	GetRoles(ctx context.Context) (*nobl9repo.Roles, error)
@@ -84,7 +84,14 @@ func (p ReferencesCompletionProvider) completeObjectNames(
 	if projectName == "" && objectref.IsProjectScoped(ref.Kind) {
 		return nil
 	}
-	names := p.repo.GetAllNames(ctx, ref.Kind, projectName)
+	names, err := p.repo.GetAllNames(ctx, ref.Kind, projectName)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to get all names",
+			slog.String("kind", ref.Kind.String()),
+			slog.String("project", projectName),
+			slog.String("error", err.Error()))
+		return nil
+	}
 	items := make([]messages.CompletionItem, 0, len(names))
 	for i := range names {
 		items = append(items, messages.CompletionItem{

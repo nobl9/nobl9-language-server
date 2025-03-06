@@ -12,6 +12,7 @@ import (
 
 	"github.com/nobl9/nobl9-language-server/internal/connection"
 	"github.com/nobl9/nobl9-language-server/internal/logging"
+	"github.com/nobl9/nobl9-language-server/internal/recovery"
 	"github.com/nobl9/nobl9-language-server/internal/server"
 	"github.com/nobl9/nobl9-language-server/internal/stdio"
 
@@ -34,6 +35,9 @@ func run() int {
 		slog.Error("failed to create server", slog.Any("error", err))
 		return 1
 	}
+	defer func() {
+		recovery.LogPanic(context.Background(), conn, recover())
+	}()
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)

@@ -20,6 +20,7 @@ bin/
 # IDE
 .idea/
 .vscode/
+*.log
 
 # JS
 node_modules/

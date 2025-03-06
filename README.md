@@ -166,3 +166,5 @@ nobl9-language-server -logLevel=TRACE
 # By default it is written into 'nobl9-language-server.log'.
 nobl9-language-server -logFilePath=/path/to/my-log-file.txt
 ```
+
+## Development

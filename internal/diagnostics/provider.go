@@ -93,7 +93,7 @@ func (d Provider) diagnoseObject(
 		return astErrorToDiagnostics(object.Err, object.Node.StartLine)
 	}
 	objectValidityDiags := d.validateObject(ctx, object)
-	diagnostics := append(objectValidityDiags, d.checkDeprecated(simpleObject)...)
+	diagnostics := append(d.checkDeprecated(simpleObject), objectValidityDiags...)
 	// Only check referenced objects if the object is valid.
 	if len(objectValidityDiags) > 0 {
 		return diagnostics

@@ -28,9 +28,6 @@ type Handler struct {
 }
 
 func (h *Handler) Handle(ctx context.Context, params messages.HoverParams) (any, error) {
-	// Change from 0-based to 1-based line number.
-	params.Position.Line++
-
 	file, err := h.files.GetFile(params.TextDocument.URI)
 	if err != nil {
 		return nil, err
