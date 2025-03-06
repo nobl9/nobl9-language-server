@@ -43,6 +43,7 @@ func (m *Mux) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Req
 		slog.String("method", req.Method))
 	span, ctx := logging.StartSpan(ctx, "mux_handle")
 	defer span.Finish()
+	defer func() { recovery.LogPanic(ctx, recover()) }()
 
 	if logging.GetLogLevel() <= slog.LevelDebug {
 		var params any
@@ -63,9 +64,6 @@ func (m *Mux) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Req
 			Message: fmt.Sprintf("method not supported: %s", req.Method)}
 	}
 
-	defer func() {
-		recovery.LogPanic(ctx, conn, recover())
-	}()
 	result, err := handle(ctx, conn, req)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to handle method", slog.Any("error", err))

@@ -1,13 +1,18 @@
 package tests
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/nobl9/nobl9-go/manifest"
 	"github.com/sourcegraph/jsonrpc2"
+	"github.com/stretchr/testify/require"
 
 	"github.com/nobl9/nobl9-language-server/internal/messages"
 	"github.com/nobl9/nobl9-language-server/internal/testutils"
@@ -425,6 +430,44 @@ func TestLSP(t *testing.T) {
 				},
 			},
 		},
+		{
+			Scenario: "open barebones object",
+			Request: TestCaseRequest{
+				ID:     5,
+				Method: messages.DidOpenMethod,
+				Params: messages.DidOpenParams{
+					TextDocument: messages.TextDocumentItem{
+						URI:        getTestFileURI("barebones-object.yaml"),
+						LanguageID: "yaml",
+						Text:       readTestFile(t, "barebones-object.yaml"),
+						Version:    1,
+					},
+				},
+			},
+			Response: TestCaseResponse{
+				ID: 5,
+			},
+			ServerRequests: []TestCaseRequest{
+				{
+					Method: messages.PublishDiagnosticsMethod,
+					Params: messages.PublishDiagnosticsParams{
+						URI:     getTestFileURI("barebones-object.yaml"),
+						Version: 1,
+						Diagnostics: []messages.Diagnostic{
+							{
+								Message:  "non-map value is specified",
+								Severity: messages.DiagnosticSeverityError,
+								Source:   ptr("go-yaml"),
+								Range: messages.Range{
+									Start: messages.Position{Line: 1, Character: 1},
+									End:   messages.Position{Line: 1, Character: 1},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -443,4 +486,23 @@ func TestLSP(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("check log file for panics", func(t *testing.T) {
+		logFileData, err := os.ReadFile(logFile)
+		require.NoError(t, err)
+
+		scanner := bufio.NewScanner(bytes.NewReader(logFileData))
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.Contains(line, "panic") {
+				var v any
+				_ = json.Unmarshal([]byte(line), &v)
+				data, _ := json.MarshalIndent(v, "", "  ")
+				if len(data) > 0 {
+					line = string(data)
+				}
+				t.Fatalf("found recovered panic in logs:\n%s", line)
+			}
+		}
+	})
 }

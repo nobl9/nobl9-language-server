@@ -26,6 +26,7 @@ import (
 	"github.com/nobl9/nobl9-language-server/internal/files"
 	"github.com/nobl9/nobl9-language-server/internal/messages"
 	"github.com/nobl9/nobl9-language-server/internal/nobl9repo"
+	"github.com/nobl9/nobl9-language-server/internal/recovery"
 	"github.com/nobl9/nobl9-language-server/internal/yamlast"
 	"github.com/nobl9/nobl9-language-server/internal/yamlastsimple"
 	"github.com/nobl9/nobl9-language-server/internal/yamlpath"
@@ -66,14 +67,18 @@ func (d Provider) DiagnoseFile(ctx context.Context, file *files.File) []messages
 	wg := sync.WaitGroup{}
 	wg.Add(len(file.Objects))
 	for i, object := range file.Objects {
-		go func() {
+		recovery.SafeGo(func() {
 			defer wg.Done()
+			if object.Err != nil {
+				ch <- astErrorToDiagnostics(object.Err, object.Node.StartLine)
+				return
+			}
 			diags := d.diagnoseObject(ctx, object, file.SimpleAST[i])
 			if len(diags) > 0 {
 				numDiags.Add(int64(len(diags)))
 			}
 			ch <- diags
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -89,9 +94,6 @@ func (d Provider) diagnoseObject(
 	object *files.ObjectNode,
 	simpleObject *files.SimpleObjectNode,
 ) []messages.Diagnostic {
-	if object.Err != nil {
-		return astErrorToDiagnostics(object.Err, object.Node.StartLine)
-	}
 	objectValidityDiags := d.validateObject(ctx, object)
 	diagnostics := append(d.checkDeprecated(simpleObject), objectValidityDiags...)
 	// Only check referenced objects if the object is valid.
@@ -837,7 +839,7 @@ func objectValidationErrorToDiagnostics(
 
 func astErrorToDiagnostics(err error, line int) []messages.Diagnostic {
 	diagnostics := make([]messages.Diagnostic, 0)
-	if tErr := yaml.AsTokenScopedError(err); tErr != nil {
+	if tErr := asYAMLTokenScopedError(err); tErr != nil {
 		diagnostics = append(diagnostics, messages.Diagnostic{
 			Range: newPointRange(
 				// Shift the line number to the actual line in the file as the SDK
@@ -897,7 +899,7 @@ func findNodeForPath(ctx context.Context, node ast.Node, path string) ast.Node {
 func getRangeFromNode(node ast.Node) messages.Range {
 	switch v := node.(type) {
 	case *ast.MappingValueNode:
-		if v.Value.GetPath() != node.GetPath() || v.Value.Type() == ast.NullType {
+		if v.Value.Type() == ast.MappingType || v.Value.Type() == ast.NullType {
 			// If the value is another mapping, or it's empty we want to highlight the key.
 			// Example:
 			//

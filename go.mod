@@ -38,8 +38,3 @@ require (
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-//replace github.com/goccy/go-yaml => github.com/nieomylnieja/go-yaml v0.0.0-20240203155346-5cd21a932f22
-replace github.com/goccy/go-yaml => /home/mh/projects/go-yaml
-
-//replace github.com/nobl9/nobl9-go => ../nobl9-go

@@ -4,13 +4,30 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"runtime/debug"
 
 	"github.com/sourcegraph/jsonrpc2"
 
 	"github.com/nobl9/nobl9-language-server/internal/messages"
 )
 
-func LogPanic(ctx context.Context, conn *jsonrpc2.Conn, recovered any) {
+var conn *jsonrpc2.Conn
+
+// Setup sets the RPC connection which will be used to notify client about panicsj
+func Setup(c *jsonrpc2.Conn) { conn = c }
+
+// SafeGo runs the given function in a goroutine and recovers from any panic
+// handling it with [LogPanic].
+func SafeGo(fn func()) {
+	go func() {
+		defer func() { LogPanic(context.Background(), recover()) }()
+		fn()
+	}()
+}
+
+// LogPanic logs the panic and notifies the client both by sending
+// window/showMessage and window/logMessage request.
+func LogPanic(ctx context.Context, recovered any) {
 	if recovered == nil {
 		return
 	}
@@ -22,11 +39,14 @@ func LogPanic(ctx context.Context, conn *jsonrpc2.Conn, recovered any) {
 	})
 	notifyClient(ctx, conn, messages.LogMessageMethod, messages.LogMessageParams{
 		Type:    messages.MessageTypeError,
-		Message: fmt.Sprint(recovered),
+		Message: fmt.Sprintf("%v\nStack trace:\n%s", recovered, string(debug.Stack())),
 	})
 }
 
 func notifyClient(ctx context.Context, conn *jsonrpc2.Conn, method string, params any) {
+	if conn == nil {
+		return
+	}
 	err := conn.Notify(ctx, method, params)
 	if err == nil {
 		return

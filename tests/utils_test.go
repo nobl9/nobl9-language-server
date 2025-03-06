@@ -20,13 +20,18 @@ import (
 	"github.com/nobl9/nobl9-language-server/internal/testutils"
 )
 
+const logFile = "test.log"
+
 func newServerCommand(t *testing.T, ctx context.Context) *serverCommand {
+	_ = os.Remove(logFile)
+
 	root := testutils.FindModuleRoot()
 	cmd := exec.CommandContext(
 		ctx,
 		"go",
 		"run",
 		filepath.Join(root, "cmd", "nobl9-language-server", "main.go"),
+		"-logFilePath="+logFile,
 		"-logLevel=TRACE",
 	)
 

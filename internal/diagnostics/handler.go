@@ -27,15 +27,10 @@ type Handler struct {
 }
 
 func (h *Handler) Handle(ctx context.Context, item messages.TextDocumentItem) (any, error) {
-	// We might not need this check!
-	// if item.Text == "" {
-	// 	return nil, nil
-	// }
 	file, err := h.fs.GetFile(item.URI)
 	if err != nil {
 		return nil, err
 	}
-	slog.DebugContext(ctx, "diagnosing file", slog.Any("file", file))
 	params := messages.PublishDiagnosticsParams{
 		URI:     item.URI,
 		Version: item.Version,

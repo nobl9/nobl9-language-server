@@ -171,9 +171,10 @@ func (s *Server) handleDidChange(ctx context.Context, params messages.DidChangeP
 	}
 	s.documentUpdates <- documentUpdateEvent{
 		Item: messages.TextDocumentItem{
-			URI:     params.TextDocument.URI,
-			Version: params.TextDocument.Version,
-			Text:    params.ContentChanges[0].Text,
+			URI:        params.TextDocument.URI,
+			LanguageID: languageID,
+			Version:    params.TextDocument.Version,
+			Text:       params.ContentChanges[0].Text,
 		},
 	}
 	return nil, nil
@@ -192,10 +193,8 @@ func (s *Server) handleSingleUpdateDiagnostics(update documentUpdateEvent) {
 		slog.Int("version", update.Item.Version))
 	span, ctx := logging.StartSpan(ctx, "handle_diagnostics")
 	defer span.Finish()
+	defer func() { recovery.LogPanic(ctx, recover()) }()
 
-	defer func() {
-		recovery.LogPanic(ctx, s.conn, recover())
-	}()
 	slog.DebugContext(ctx, "evaluating diagnostics")
 
 	params, err := s.handlers.Diagnostics(ctx, update.Item)

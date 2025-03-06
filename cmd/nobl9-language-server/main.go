@@ -35,9 +35,8 @@ func run() int {
 		slog.Error("failed to create server", slog.Any("error", err))
 		return 1
 	}
-	defer func() {
-		recovery.LogPanic(context.Background(), conn, recover())
-	}()
+	recovery.Setup(conn)
+	defer func() { recovery.LogPanic(context.Background(), recover()) }()
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)

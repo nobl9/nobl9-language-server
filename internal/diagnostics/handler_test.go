@@ -629,6 +629,28 @@ func TestHandler_Handle(t *testing.T) {
 				},
 			},
 		},
+		"barebones object": {
+			item: messages.TextDocumentItem{
+				URI:     getTestFileURI("barebones-object.yaml").URI,
+				Version: 1,
+				Text:    "foo", // Text is not actually relevant.
+			},
+			expected: &messages.PublishDiagnosticsParams{
+				URI:     getTestFileURI("barebones-object.yaml").URI,
+				Version: 1,
+				Diagnostics: []messages.Diagnostic{
+					{
+						Message:  "non-map value is specified",
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(goYamlSource),
+						Range: messages.Range{
+							Start: messages.Position{Line: 1, Character: 1},
+							End:   messages.Position{Line: 1, Character: 1},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, test := range tests {
