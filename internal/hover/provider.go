@@ -170,7 +170,11 @@ func findObjectDescription(ctx context.Context, rawObject string) string {
 	if descriptionLine == nil {
 		return ""
 	}
-	return descriptionLine.GetMapValue()
+	v := descriptionLine.GetMapValue()
+	if v == `""` {
+		return ""
+	}
+	return v
 }
 
 func (p Provider) buildDocs(doc *sdkdocs.PropertyDoc) string {

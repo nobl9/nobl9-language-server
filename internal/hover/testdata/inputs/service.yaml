@@ -5,3 +5,11 @@ metadata:
   project: default
 spec:
   description: "This is a test service"
+---
+apiVersion: n9/v1alpha
+kind: Service
+metadata:
+  name: test-service
+  project: custom
+spec:
+  description: "This is a test service"

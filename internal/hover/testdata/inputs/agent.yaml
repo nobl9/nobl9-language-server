@@ -1,0 +1,18 @@
+- apiVersion: n9/v1alpha
+  kind: Agent
+  metadata:
+    name: my-gcm
+    project: no-description
+  spec:
+    gcm: {}
+    historicalDataRetrieval:
+      defaultDuration:
+        unit: Day
+        value: 0
+      maxDuration:
+        unit: Day
+        value: 0
+    queryDelay:
+      unit: Minute
+      value: 2
+    releaseChannel: stable

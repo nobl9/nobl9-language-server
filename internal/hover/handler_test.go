@@ -117,6 +117,40 @@ func TestHandler_Handle(t *testing.T) {
 				},
 			},
 		},
+		"agent - metadata.project value": {
+			params: messages.HoverParams{
+				TextDocumentPositionParams: messages.TextDocumentPositionParams{
+					TextDocument: getTestFileURI("agent.yaml"),
+					Position: messages.Position{
+						Line:      4,
+						Character: 13,
+					},
+				},
+			},
+			expected: &messages.HoverResponse{
+				Contents: messages.MarkupContent{
+					Kind:  messages.Markdown,
+					Value: mustReadFile(t, "metadata-project-value-no-description.md"),
+				},
+			},
+		},
+		"service - metadata.project value with non-existent project": {
+			params: messages.HoverParams{
+				TextDocumentPositionParams: messages.TextDocumentPositionParams{
+					TextDocument: getTestFileURI("service.yaml"),
+					Position: messages.Position{
+						Line:      12,
+						Character: 16,
+					},
+				},
+			},
+			expected: &messages.HoverResponse{
+				Contents: messages.MarkupContent{
+					Kind:  messages.Markdown,
+					Value: mustReadFile(t, "metadata-project-key.md"),
+				},
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -162,10 +196,13 @@ func (m mockObjectsRepo) GetAllNames(_ context.Context, kind manifest.Kind, proj
 func (m mockObjectsRepo) GetObject(
 	_ context.Context,
 	kind manifest.Kind,
-	_, _ string,
+	name, _ string,
 ) (manifest.Object, error) {
 	switch kind {
 	case manifest.KindSLO:
+		if name != "default" {
+			return nil, nil
+		}
 		return v1alphaSLO.New(
 			v1alphaSLO.Metadata{},
 			v1alphaSLO.Spec{
@@ -176,14 +213,25 @@ func (m mockObjectsRepo) GetObject(
 			},
 		), nil
 	case manifest.KindProject:
-		return v1alphaProject.New(
-			v1alphaProject.Metadata{
-				Name: "default",
-			},
-			v1alphaProject.Spec{
-				Description: "This is an example Project!",
-			},
-		), nil
+		switch name {
+		case "default":
+			return v1alphaProject.New(
+				v1alphaProject.Metadata{
+					Name: "default",
+				},
+				v1alphaProject.Spec{
+					Description: "This is an example Project!",
+				},
+			), nil
+		case "no-description":
+			return v1alphaProject.New(
+				v1alphaProject.Metadata{
+					Name: "no-description",
+				},
+				v1alphaProject.Spec{},
+			), nil
+		}
+		return nil, nil
 	default:
 		return nil, nil
 	}
