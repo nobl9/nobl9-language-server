@@ -478,7 +478,7 @@ func TestSimpleObjectNode_FindLineByPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			file, err := parseSimpleObjectFile(tt.content)
+			file, err := ParseSimpleObjectFile(tt.content)
 			require.NoError(t, err)
 			require.Len(t, file, 1)
 			result := file[0].FindLineByPath(tt.path)

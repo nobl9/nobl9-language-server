@@ -46,7 +46,7 @@ func newHandlersRegistry(
 		completion.NewSnippetsProvider(),
 	)
 	// Hover.
-	hoverProvider := hover.NewProvider(sdkDocs)
+	hoverProvider := hover.NewProvider(sdkDocs, objectsRepo)
 	hoverHandler := hover.NewHandler(filesystem, hoverProvider)
 	// Code actions.
 	codeActionsHandler := codeactions.NewHandler(filesystem, objectsRepo, notifier)

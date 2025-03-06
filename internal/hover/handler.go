@@ -4,15 +4,18 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/nobl9/nobl9-go/manifest"
-
 	"github.com/nobl9/nobl9-language-server/internal/files"
 	"github.com/nobl9/nobl9-language-server/internal/messages"
 	"github.com/nobl9/nobl9-language-server/internal/yamlastsimple"
 )
 
 type providerInterface interface {
-	Hover(kind manifest.Kind, line *yamlastsimple.Line) *messages.HoverResponse
+	Hover(
+		ctx context.Context,
+		params messages.HoverParams,
+		node *files.SimpleObjectNode,
+		line *yamlastsimple.Line,
+	) *messages.HoverResponse
 }
 
 func NewHandler(files *files.FS, provider providerInterface) *Handler {
@@ -46,5 +49,5 @@ func (h *Handler) Handle(ctx context.Context, params messages.HoverParams) (any,
 		slog.ErrorContext(ctx, "no document found", slog.Any("line", params.Position.Line))
 		return nil, nil
 	}
-	return h.provider.Hover(node.Kind, line), nil
+	return h.provider.Hover(ctx, params, node, line), nil
 }

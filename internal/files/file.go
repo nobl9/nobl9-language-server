@@ -89,7 +89,7 @@ func (v *File) Update(ctx context.Context, version int, content string) {
 	v.Version = version
 	v.Content = content
 
-	v.SimpleAST, v.Err = parseSimpleObjectFile(content)
+	v.SimpleAST, v.Err = ParseSimpleObjectFile(content)
 	if v.Err != nil {
 		return
 	}
@@ -135,7 +135,7 @@ func (o *ObjectNode) copy() *ObjectNode {
 	}
 }
 
-func parseSimpleObjectFile(content string) (SimpleObjectFile, error) {
+func ParseSimpleObjectFile(content string) (SimpleObjectFile, error) {
 	simpleAST := yamlastsimple.ParseFile(content)
 	file := make(SimpleObjectFile, 0, len(simpleAST.Docs))
 	for _, doc := range simpleAST.Docs {
