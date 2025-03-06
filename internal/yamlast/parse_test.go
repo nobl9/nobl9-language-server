@@ -15,6 +15,9 @@ var testParseInput embed.FS
 
 func TestParse(t *testing.T) {
 	tests := map[string][]Node{
+		"empty.yaml": {
+			{StartLine: 0, EndLine: 1},
+		},
 		"document.yaml": {
 			{StartLine: 1, EndLine: 4},
 		},
@@ -34,6 +37,7 @@ func TestParse(t *testing.T) {
 			{StartLine: 2, EndLine: 5},
 			{StartLine: 6, EndLine: 9},
 			{StartLine: 10, EndLine: 13},
+			{StartLine: 14, EndLine: 15},
 		},
 		"two-sequence-documents.yaml": {
 			{StartLine: 1, EndLine: 4},

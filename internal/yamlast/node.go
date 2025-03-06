@@ -7,9 +7,10 @@ import (
 // Node is a wrapper over [ast.Node] that also contains the start and end line of the node in the original file.
 // Both StartLine and EndLine are inclusive range endpoints.
 type Node struct {
-	Node      ast.Node
-	StartLine int
-	EndLine   int
+	Node        ast.Node
+	StartLine   int
+	EndLine     int
+	isSeparator bool
 }
 
 // Find finds an [ast.Node] in the [Node] that's located at the specified line and character.

@@ -29,8 +29,9 @@ func Parse(content string) (*File, error) {
 		if doc.Start != nil {
 			// Add a dummy node for the document separator.
 			nodes = append(nodes, &Node{
-				StartLine: doc.Start.Position.Line,
-				EndLine:   doc.Start.Position.Line,
+				StartLine:   doc.Start.Position.Line,
+				EndLine:     doc.Start.Position.Line,
+				isSeparator: true,
 			})
 		}
 		switch nv := doc.Body.(type) {
@@ -43,9 +44,10 @@ func Parse(content string) (*File, error) {
 			}
 		default:
 			node := &Node{Node: doc.Body}
-			if doc.Body != nil {
+			switch {
+			case doc.Body != nil:
 				node.StartLine = doc.Body.GetToken().Position.Line
-			} else {
+			case doc.Start != nil:
 				node.StartLine = doc.Start.Position.Line
 			}
 			nodes = append(nodes, node)
@@ -59,7 +61,7 @@ func Parse(content string) (*File, error) {
 		}
 	}
 	// Filter out dummy separator nodes.
-	nodes = slices.DeleteFunc(nodes, func(n *Node) bool { return n.Node == nil })
+	nodes = slices.DeleteFunc(nodes, func(n *Node) bool { return n.isSeparator })
 	return &File{
 		Nodes: nodes,
 		File:  astFile,
