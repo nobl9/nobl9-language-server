@@ -146,14 +146,14 @@ sequenceDiagram
     participant C as Language Client (IDE)
     participant S as Language Server
     Note right of C: User opens a YAML file with Nobl9 configuration
-    C->>S: textDocument/didOpen (file opened)
+    C ->> S: textDocument/didOpen (file opened)
     loop File Editing
-        C->>S: textDocument/didChange (file changed)
-        S-->>C: publishDiagnostics (errors, warnings)
+        C ->> S: textDocument/didChange (file changed)
+        S -->> C: publishDiagnostics (errors, warnings)
     end
-    C->>S: textDocument/completion (autocomplete request)
-    S-->>C: completion items
-    Note over C,S: Other LSP requests such as:<br/>textDocument/codeAction, textDocument/hover, etc.
+    C ->> S: textDocument/completion (autocomplete request)
+    S -->> C: completion items
+    Note over C, S: Other LSP requests such as:<br/>textDocument/codeAction, textDocument/hover, etc.
 ```
 
 ## Configuration
@@ -168,6 +168,36 @@ nobl9-language-server -logLevel=TRACE
 # Path to the server's log file.
 # By default it is written into 'nobl9-language-server.log'.
 nobl9-language-server -logFilePath=/path/to/my-log-file.txt
+# Display version information.
+nobl9-language-server -version
+```
+
+In order for the server to work correctly,
+it requires valid Nobl9 API access keys.
+Under the hood the server uses [nobl9-go](https://github.com/nobl9/nobl9-go)
+which is an official Golang SDK for Nobl9 platform.
+The SDK provides ways of authenticating with the Nobl9 platform,
+see [this document](https://github.com/nobl9/nobl9-go?tab=readme-ov-file#reading-configuration)
+for more information on different ways the API access keys can be provided.
+
+If you're a sloctl user and you already have the `config.toml` file,
+the server will reuse it.
+
+If you don't yet have any access keys, you can create them by following
+the [official documentation](https://docs.nobl9.com/getting-started/access-keys).
+
+If you're opting to configure the server using environment variables,
+use the following prefix: `NOBL9_LANGUAGE_SERVER_` with any of the
+environment variables supported by the SDK.
+
+Example:
+
+```bash
+export NOBL9_LANGUAGE_SERVER_CLIENT_ID=<your-client-id>
+export NOBL9_LANGUAGE_SERVER_CLIENT_SECRET=<your-client-secret>
+nobl9-language-server
 ```
 
 ## Development
+
+Refer to the [development documentation](./docs/DEVELOPMENT.md) for more details.

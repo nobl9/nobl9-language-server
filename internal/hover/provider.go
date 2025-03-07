@@ -1,9 +1,9 @@
 package hover
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
-	"fmt"
 	"log/slog"
 	"strings"
 
@@ -51,10 +51,10 @@ func (p Provider) Hover(
 	case params.Position.Character > keyPosEnd:
 		docs = p.generatePropertyValueDoc(ctx, node, line)
 		if docs == "" {
-			docs = p.generatePropertyKeyDoc(node.Kind, line)
+			docs = p.generatePropertyKeyDoc(ctx, node.Kind, line)
 		}
 	default:
-		docs = p.generatePropertyKeyDoc(node.Kind, line)
+		docs = p.generatePropertyKeyDoc(ctx, node.Kind, line)
 	}
 	if docs == "" {
 		return nil
@@ -68,12 +68,12 @@ func (p Provider) Hover(
 	}
 }
 
-func (p Provider) generatePropertyKeyDoc(kind manifest.Kind, line *yamlastsimple.Line) string {
+func (p Provider) generatePropertyKeyDoc(ctx context.Context, kind manifest.Kind, line *yamlastsimple.Line) string {
 	prop := p.docs.GetProperty(kind, line.GeneralizedPath)
 	if prop == nil {
 		return ""
 	}
-	return p.buildDocs(prop)
+	return p.buildPropertyDocs(ctx, prop)
 }
 
 func (p Provider) generatePropertyValueDoc(
@@ -162,10 +162,15 @@ func (p Provider) generateUserDocs(
 	if user == nil {
 		return ""
 	}
-	b := strings.Builder{}
-	b.WriteString(fmt.Sprintf("`%s` User\n\n", user.UserID))
-	b.WriteString(fmt.Sprintf("- Name: %s\n", user.FirstName+" "+user.LastName))
-	b.WriteString(fmt.Sprintf("- Email: %s", user.Email))
+	tpl := userDocTpl()
+	var b bytes.Buffer
+	if err = tpl.Execute(&b, user); err != nil {
+		slog.ErrorContext(ctx, "failed to execute user doc template",
+			slog.String("kind", ref.Kind.String()),
+			slog.String("userID", userID),
+			slog.String("error", err.Error()))
+		return ""
+	}
 	return b.String()
 }
 
@@ -180,16 +185,20 @@ func (p Provider) buildObjectDocs(ctx context.Context, object manifest.Object) s
 	}
 	objectYAMLStr := string(objectYAML)
 
-	b := strings.Builder{}
-	b.WriteString(fmt.Sprintf("`%s` %s", object.GetName(), object.GetKind()))
-	if description := findObjectDescription(ctx, objectYAMLStr); description != "" {
-		b.WriteString("\n\n")
-		b.WriteString(description)
+	tpl := objectDocTpl()
+	var b bytes.Buffer
+	if err = tpl.Execute(&b, objectDocData{
+		Kind:        object.GetKind(),
+		Name:        object.GetName(),
+		Description: findObjectDescription(ctx, objectYAMLStr),
+		YAML:        objectYAMLStr,
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to execute object doc template",
+			slog.String("kind", object.GetKind().String()),
+			slog.String("name", object.GetName()),
+			slog.String("error", err.Error()))
+		return ""
 	}
-	b.WriteString("\n\n")
-	b.WriteString("```yaml\n")
-	b.WriteString(objectYAMLStr)
-	b.WriteString("```")
 	return b.String()
 }
 
@@ -215,66 +224,28 @@ func findObjectDescription(ctx context.Context, rawObject string) string {
 	return v
 }
 
-func (p Provider) buildDocs(doc *sdkdocs.PropertyDoc) string {
-	b := strings.Builder{}
+func (p Provider) buildPropertyDocs(ctx context.Context, doc *sdkdocs.PropertyDoc) string {
 	lastDot := strings.LastIndex(doc.Path, ".")
 	propertyName := doc.Path[lastDot+1:]
-	b.WriteString(fmt.Sprintf("`%s:%s`", propertyName, doc.Type))
-	if doc.Doc != "" {
-		b.WriteString("\n\n")
-		b.WriteString(doc.Doc)
-	}
 	rules := filterSlice(doc.Rules, func(rule sdkdocs.RulePlan) bool {
 		return rule.Description != "" && rule.Description != "TODO"
 	})
-	if len(rules) > 0 {
-		b.WriteString("\n\n**Validation rules:**")
-		for _, rule := range rules {
-			b.WriteString("\n")
-			b.WriteString("- ")
-			b.WriteString(markdownEscape(rule.Description))
-			if rule.Details != "" {
-				b.WriteString("; ")
-				b.WriteString(markdownEscape(rule.Details))
-			}
-			if len(rule.Conditions) > 0 {
-				b.WriteString("\n  Conditions:\n")
-				for _, condition := range rule.Conditions {
-					b.WriteString("    - ")
-					b.WriteString(markdownEscape(condition))
-					b.WriteString("\n")
-				}
-			}
-		}
-	}
-	if len(doc.Examples) > 0 {
-		b.WriteString("\n\n**Examples:**\n")
-		b.WriteString("\n```yaml\n")
-		for i, example := range doc.Examples {
-			b.WriteString(example)
-			if i < len(doc.Examples)-1 {
-				b.WriteString("\n---\n")
-			}
-		}
-		b.WriteString("\n```")
+
+	tpl := propertyDocTpl()
+	var b bytes.Buffer
+	if err := tpl.Execute(&b, propertyDocData{
+		Name:     propertyName,
+		Type:     doc.Type,
+		Doc:      doc.Doc,
+		Rules:    rules,
+		Examples: doc.Examples,
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to execute property doc template",
+			slog.String("path", doc.Path),
+			slog.String("error", err.Error()))
+		return ""
 	}
 	return b.String()
-}
-
-// Based on: https://github.com/mattcone/markdown-guide/blob/master/_basic-syntax/escaping-characters.md
-const markdownSpecialCharacters = "\\`*_{}[]<>()#+-.!|"
-
-var markdownReplacer = func() *strings.Replacer {
-	var replacements []string
-	for _, c := range markdownSpecialCharacters {
-		replacements = append(replacements, string(c), `\`+string(c))
-	}
-	return strings.NewReplacer(replacements...)
-}()
-
-// markdownEscape escapes markdown characters in the given string.
-func markdownEscape(s string) string {
-	return markdownReplacer.Replace(s)
 }
 
 func getProjectNameFromRef(node *files.SimpleObjectNode, ref *objectref.Reference) string {

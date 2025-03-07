@@ -16,6 +16,7 @@ import (
 
 	"github.com/nobl9/nobl9-language-server/internal/messages"
 	"github.com/nobl9/nobl9-language-server/internal/testutils"
+	"github.com/nobl9/nobl9-language-server/internal/version"
 )
 
 // TestCase is a test case that sends a single JSON RPC request
@@ -89,7 +90,7 @@ func TestLSP(t *testing.T) {
 					},
 					ServerInfo: messages.ServerInfo{
 						Name:    "nobl9-language-server",
-						Version: "v1.0.0",
+						Version: version.GetVersion(),
 					},
 				},
 			},
@@ -194,7 +195,7 @@ func TestLSP(t *testing.T) {
 						Kind: messages.Markdown,
 						Value: "`kind:string`\n\n" +
 							"Kind represents all the [Object] kinds available in the API to perform operations on.\n\n" +
-							"**Validation rules:**\n- should be equal to 'Project'",
+							"**Validation rules:**\n\n- should be equal to 'Project'",
 					},
 				},
 			},

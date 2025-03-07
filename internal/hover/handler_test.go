@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/nobl9/nobl9-go/manifest"
+	"github.com/nobl9/nobl9-go/manifest/v1alpha"
+	v1alphaAgent "github.com/nobl9/nobl9-go/manifest/v1alpha/agent"
 	v1alphaProject "github.com/nobl9/nobl9-go/manifest/v1alpha/project"
 	v1alphaSLO "github.com/nobl9/nobl9-go/manifest/v1alpha/slo"
 	"github.com/stretchr/testify/assert"
@@ -164,7 +166,24 @@ func TestHandler_Handle(t *testing.T) {
 			expected: &messages.HoverResponse{
 				Contents: messages.MarkupContent{
 					Kind:  messages.Markdown,
-					Value: mustReadFile(t, "metadata-project-key.md"),
+					Value: mustReadFile(t, "metric-source-value.md"),
+				},
+			},
+		},
+		"role binding - user value": {
+			params: messages.HoverParams{
+				TextDocumentPositionParams: messages.TextDocumentPositionParams{
+					TextDocument: getTestFileURI("role-binding.yaml"),
+					Position: messages.Position{
+						Line:      5,
+						Character: 16,
+					},
+				},
+			},
+			expected: &messages.HoverResponse{
+				Contents: messages.MarkupContent{
+					Kind:  messages.Markdown,
+					Value: mustReadFile(t, "user-details.md"),
 				},
 			},
 		},
@@ -227,6 +246,21 @@ func (m mockObjectsRepo) GetObject(
 					{ObjectiveBase: v1alphaSLO.ObjectiveBase{Name: "foo"}},
 					{ObjectiveBase: v1alphaSLO.ObjectiveBase{Name: "bar"}},
 				},
+			},
+		), nil
+	case manifest.KindAgent:
+		if name != "default" {
+			return nil, nil
+		}
+		return v1alphaAgent.New(
+			v1alphaAgent.Metadata{
+				Name:    "default",
+				Project: "default",
+			},
+			v1alphaAgent.Spec{
+				Description:    "This is an example Agent!",
+				GCM:            &v1alphaAgent.GCMConfig{},
+				ReleaseChannel: v1alpha.ReleaseChannelStable,
 			},
 		), nil
 	case manifest.KindProject:

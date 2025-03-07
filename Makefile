@@ -98,7 +98,10 @@ check/trailing:
 check/markdown:
 	$(call _print_check_step,Verifying Markdown files)
 	$(call _ensure_installed,yarn,markdownlint)
-	yarn --silent markdownlint '**/*.md' --ignore node_modules
+	yarn --silent markdownlint '**/*.md' \
+		--ignore '**/testdata/**' \
+		--ignore 'internal/hover/templates/*' \
+		--ignore node_modules
 
 ## Check for potential vulnerabilities across all Go dependencies.
 check/vulns:

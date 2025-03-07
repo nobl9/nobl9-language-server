@@ -10,4 +10,6 @@ metadata:
   project: default
 spec:
   description: This is an example Agent!
+  releaseChannel: stable
+  gcm: {}
 ```

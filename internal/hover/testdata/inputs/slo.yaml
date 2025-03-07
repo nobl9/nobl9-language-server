@@ -9,7 +9,7 @@
     description: ""
     indicator:
       metricSource:
-        name: datadog
+        name: default
     service: datadog-n9
     alertPolicies: [foo]
     objectives:
