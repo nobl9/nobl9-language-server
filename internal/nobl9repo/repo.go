@@ -10,13 +10,25 @@ import (
 	"github.com/nobl9/nobl9-go/manifest"
 	"github.com/nobl9/nobl9-go/sdk"
 	v1objects "github.com/nobl9/nobl9-go/sdk/endpoints/objects/v1"
+
+	"github.com/nobl9/nobl9-language-server/internal/version"
 )
 
+const envPrefix = "NOBL9_LANGUAGE_SERVER_"
+
 func NewRepo() (*Repo, error) {
-	client, err := sdk.DefaultClient()
+	options := []sdk.ConfigOption{
+		sdk.ConfigOptionEnvPrefix(envPrefix),
+	}
+	conf, err := sdk.ReadConfig(options...)
 	if err != nil {
 		return nil, err
 	}
+	client, err := sdk.NewClient(conf)
+	if err != nil {
+		return nil, err
+	}
+	client.SetUserAgent(version.GetUserAgent())
 	return &Repo{
 		client: client,
 		cache:  newDataCache(),

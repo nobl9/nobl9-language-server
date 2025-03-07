@@ -119,7 +119,7 @@ Server supports the following LSP features:
 - [x] Hover documentation
   - [x] Property documentation
     <img src="./docs/assets/hover-documentation-property.gif" alt="Example Image" width="800" />
-  - [x] Nobl9 resource documentation 
+  - [x] Nobl9 resource documentation
     <img src="./docs/assets/hover-documentation-references.gif" alt="Example Image" width="800" />
 - [x] Snippets
   <img src="./docs/assets/code-actions.gif" alt="Example Image" width="800" />

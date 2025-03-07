@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -15,19 +16,31 @@ import (
 	"github.com/nobl9/nobl9-language-server/internal/recovery"
 	"github.com/nobl9/nobl9-language-server/internal/server"
 	"github.com/nobl9/nobl9-language-server/internal/stdio"
+	"github.com/nobl9/nobl9-language-server/internal/version"
 
 	"github.com/nobl9/nobl9-language-server/internal/mux"
 )
-
-var LspVersion = "v1.0.0"
 
 func main() {
 	os.Exit(run())
 }
 
 func run() int {
-	logConf := parseLoggingConfig()
-	logCloser := logging.Setup(logConf)
+	config := parseFlags()
+
+	if len(flag.Args()) > 0 {
+		fmt.Fprintln(os.Stderr, "Error: positional arguments are not allowed")
+		os.Exit(1)
+	}
+	if config.ShowVersion {
+		fmt.Println(version.GetUserAgent())
+		return 0
+	}
+
+	logCloser := logging.Setup(logging.Config{
+		LogFile:  config.LogFile,
+		LogLevel: config.LogLevel,
+	})
 	defer func() { _ = logCloser.Close() }()
 
 	conn, err := bootstrap()
@@ -56,7 +69,7 @@ func bootstrap() (*jsonrpc2.Conn, error) {
 	span, _ := logging.StartSpan(ctx, "bootstrap")
 	defer span.Finish()
 
-	srv, err := server.New(ctx, LspVersion)
+	srv, err := server.New(ctx, version.GetVersion())
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +78,15 @@ func bootstrap() (*jsonrpc2.Conn, error) {
 	return connection.NewJSONRPC2(ctx, stream, handler), nil
 }
 
-func parseLoggingConfig() logging.Config {
-	var c logging.Config
+type configuration struct {
+	LogFile     string
+	LogLevel    logging.Level
+	ShowVersion bool
+}
+
+func parseFlags() configuration {
+	var c configuration
+	flag.BoolVar(&c.ShowVersion, "version", false, "Show version information")
 	flag.StringVar(&c.LogFile, "logFilePath", "", "Log messages to the provided file")
 	flag.TextVar(&c.LogLevel, "logLevel", logging.DefaultLevel(), "Log messages at the provided level")
 	flag.Parse()

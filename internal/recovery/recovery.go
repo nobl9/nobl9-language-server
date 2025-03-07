@@ -13,7 +13,7 @@ import (
 
 var conn *jsonrpc2.Conn
 
-// Setup sets the RPC connection which will be used to notify client about panicsj
+// Setup sets the RPC connection which will be used to notify client about panics.
 func Setup(c *jsonrpc2.Conn) { conn = c }
 
 // SafeGo runs the given function in a goroutine and recovers from any panic

@@ -4,7 +4,19 @@ MAKEFLAGS += --silent --no-print-directory
 BIN_DIR := ./bin
 SCRIPTS_DIR := ./scripts
 APP_NAME := nobl9-language-server
-LDFLAGS += -s -w
+VERSION_PKG := "$(shell go list -m)/internal/version"
+
+ifndef BRANCH
+  BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+endif
+ifndef REVISION
+  REVISION := $(shell git rev-parse --short=8 HEAD)
+endif
+
+LDFLAGS := -s -w \
+	-X $(VERSION_PKG).BuildVersion=$(VERSION) \
+	-X $(VERSION_PKG).BuildGitBranch=$(BRANCH) \
+	-X $(VERSION_PKG).BuildGitRevision=$(REVISION)
 
 # renovate datasource=github-releases depName=securego/gosec
 GOSEC_VERSION := v2.22.0

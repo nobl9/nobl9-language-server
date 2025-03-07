@@ -12,12 +12,12 @@ type tokenScopedError struct {
 	Msg string
 	// Token is the [token.Token] associated with this error.
 	Token *token.Token
-	// err is the underlying, unwraped error.
+	// err is the underlying, unwrapped error.
 	err error
 }
 
 // Error implements the error interface.
-// It returns the unwraped error returned by go-yaml.
+// It returns the unwrapped error returned by go-yaml.
 func (s tokenScopedError) Error() string {
 	return s.err.Error()
 }
