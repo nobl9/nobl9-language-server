@@ -24,7 +24,7 @@ type docsProvider interface {
 
 type objectsRepo interface {
 	GetObject(ctx context.Context, kind manifest.Kind, name, project string) (manifest.Object, error)
-	GetUsers(ctx context.Context, phrase string) ([]*nobl9repo.User, error)
+	GetUser(ctx context.Context, id string) (*nobl9repo.User, error)
 }
 
 func NewProvider(docs docsProvider, repo objectsRepo) *Provider {
@@ -90,16 +90,12 @@ func (p Provider) generatePropertyValueDoc(
 	}
 
 	switch {
-	//case ref.SLOPath != "":
-	//return p.completeObjectiveNames(ctx, node, ref)
-	//case node.Kind == manifest.KindSLO && ref.Path == "$.spec.indicator.metricSource.name":
-	//return p.completeSLOMetricSourceName(ctx, node, ref)
-	//case node.Kind == manifest.KindRoleBinding && ref.Path == "$.spec.user":
-	//return p.completeUserIDs(ctx, line)
-	//case node.Kind == manifest.KindRoleBinding && ref.Path == "$.spec.roleRef":
-	//return p.completeRoleBindingRoles(ctx, node)
-	//case node.Kind == manifest.KindUserGroup && ref.Path == "$.spec.members[*].id":
-	//return p.completeUserIDs(ctx, line)
+	case node.Kind == manifest.KindSLO && ref.Path == "$.spec.indicator.metricSource.name":
+		return p.generateSLOMetricSourceDocs(ctx, node, line, ref)
+	case node.Kind == manifest.KindRoleBinding && ref.Path == "$.spec.user":
+		return p.generateUserDocs(ctx, line, ref)
+	case node.Kind == manifest.KindUserGroup && ref.Path == "$.spec.members[*].id":
+		return p.generateUserDocs(ctx, line, ref)
 	default:
 		return p.generateObjectDocs(ctx, node, line, ref)
 	}
@@ -129,6 +125,48 @@ func (p Provider) generateObjectDocs(
 		return ""
 	}
 	return p.buildObjectDocs(ctx, object)
+}
+
+func (p Provider) generateSLOMetricSourceDocs(
+	ctx context.Context,
+	node *files.SimpleObjectNode,
+	line *yamlastsimple.Line,
+	ref *objectref.Reference,
+) string {
+	rawKind := getLineValueForPath(node, "$.spec.indicator.metricSource.kind")
+	kind, err := manifest.ParseKind(rawKind)
+	if err == nil {
+		return ""
+	}
+	if kind == 0 {
+		kind = manifest.KindAgent
+	}
+	ref.Kind = kind
+	return p.generateObjectDocs(ctx, node, line, ref)
+}
+
+func (p Provider) generateUserDocs(
+	ctx context.Context,
+	line *yamlastsimple.Line,
+	ref *objectref.Reference,
+) string {
+	userID := line.GetMapValue()
+	user, err := p.repo.GetUser(ctx, userID)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to get user",
+			slog.String("kind", ref.Kind.String()),
+			slog.String("userID", userID),
+			slog.String("error", err.Error()))
+		return ""
+	}
+	if user == nil {
+		return ""
+	}
+	b := strings.Builder{}
+	b.WriteString(fmt.Sprintf("`%s` User\n\n", user.UserID))
+	b.WriteString(fmt.Sprintf("- Name: %s\n", user.FirstName+" "+user.LastName))
+	b.WriteString(fmt.Sprintf("- Email: %s", user.Email))
+	return b.String()
 }
 
 func (p Provider) buildObjectDocs(ctx context.Context, object manifest.Object) string {

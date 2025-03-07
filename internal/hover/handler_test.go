@@ -151,6 +151,23 @@ func TestHandler_Handle(t *testing.T) {
 				},
 			},
 		},
+		"slo - metric source value": {
+			params: messages.HoverParams{
+				TextDocumentPositionParams: messages.TextDocumentPositionParams{
+					TextDocument: getTestFileURI("slo.yaml"),
+					Position: messages.Position{
+						Line:      11,
+						Character: 18,
+					},
+				},
+			},
+			expected: &messages.HoverResponse{
+				Contents: messages.MarkupContent{
+					Kind:  messages.Markdown,
+					Value: mustReadFile(t, "metadata-project-key.md"),
+				},
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -241,8 +258,11 @@ func (m mockObjectsRepo) GetDefaultProject() string {
 	return "default"
 }
 
-func (m mockObjectsRepo) GetUsers(_ context.Context, phrase string) ([]*nobl9repo.User, error) {
-	return []*nobl9repo.User{
-		{UserID: "foo", FirstName: "Foo", LastName: "Bar", Email: phrase + "@baz.com"},
+func (m mockObjectsRepo) GetUser(_ context.Context, id string) (*nobl9repo.User, error) {
+	return &nobl9repo.User{
+		UserID:    "foo",
+		FirstName: "Foo",
+		LastName:  "Bar",
+		Email:     id + "@baz.com",
 	}, nil
 }
