@@ -51,6 +51,13 @@ type TestCaseResponse struct {
 }
 
 func TestLSP(t *testing.T) {
+	// Currently, access to the Nobl9 API is mandatory.
+	// This test will fail if the following environment variables are not set.
+	// Since we're only operating on Project (which has no object references) we won't be calling the API anyway.
+	t.Setenv("NOBL9_LANGUAGE_SERVER_NO_CONFIG_FILE", "true")
+	t.Setenv("NOBL9_LANGUAGE_SERVER_CLIENT_ID", "fake-id")
+	t.Setenv("NOBL9_LANGUAGE_SERVER_CLIENT_SECRET", "fake-secret")
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	server := newServerCommand(t, ctx)
