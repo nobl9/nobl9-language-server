@@ -61,6 +61,12 @@ func TestLSP(t *testing.T) {
 	t.Cleanup(func() {
 		cancel()
 		server.Stop(t)
+
+		if t.Failed() {
+			logFileData, err := os.ReadFile(logFile)
+			require.NoError(t, err)
+			t.Logf("log file contents:\n%s", logFileData)
+		}
 	})
 
 	tests := []TestCase{
