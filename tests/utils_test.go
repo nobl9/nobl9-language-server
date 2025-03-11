@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
-	"time"
 
 	"github.com/sourcegraph/jsonrpc2"
 	"github.com/stretchr/testify/assert"
@@ -69,10 +68,10 @@ func (s *serverCommand) Start(t *testing.T) {
 func (s *serverCommand) Stop(t *testing.T) {
 	_, err := s.cmd.Process.Wait()
 	assert.NoError(t, err)
-	time.Sleep(1 * time.Second)
+
 	out, err := io.ReadAll(s.stderr)
 	assert.NoError(t, err)
-	assert.Empty(t, out)
+	assert.Empty(t, string(out))
 }
 
 func newJSONRPCClient(writer io.Writer, reader io.Reader) *jsonRPCClient {
