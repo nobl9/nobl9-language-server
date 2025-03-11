@@ -42,7 +42,7 @@ func newServerCommand(t *testing.T, ctx context.Context) *serverCommand {
 	require.NoError(t, err)
 
 	stderr := new(bytes.Buffer)
-	cmd.Stderr = stderr
+	cmd.Stderr = io.MultiWriter(os.Stderr, stderr)
 
 	return &serverCommand{
 		IN:     inputPipe,
@@ -68,6 +68,10 @@ func (s *serverCommand) Start(t *testing.T) {
 func (s *serverCommand) Stop(t *testing.T) {
 	_, err := s.cmd.Process.Wait()
 	assert.NoError(t, err)
+
+	out, err := io.ReadAll(s.stderr)
+	assert.NoError(t, err)
+	assert.Empty(t, string(out))
 }
 
 func newJSONRPCClient(writer io.Writer, reader io.Reader) *jsonRPCClient {
