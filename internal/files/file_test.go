@@ -31,11 +31,11 @@ func TestFile_Update(t *testing.T) {
 		outFile *File
 	}{
 		{
-			name:    "initial zero version",
+			name:    "initial first version",
 			content: "content: foo",
-			version: 0,
-			inFile:  &File{Version: 0},
-			outFile: &File{Version: 0, Content: "content: foo"},
+			version: 1,
+			inFile:  &File{},
+			outFile: &File{Version: 1, Content: "content: foo"},
 		},
 		{
 			name:    "version upgrade",

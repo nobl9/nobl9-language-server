@@ -85,7 +85,7 @@ func (s *Server) handleInitialize(
 	ctx context.Context,
 	conn *jsonrpc2.Conn,
 	req *jsonrpc2.Request,
-) (interface{}, error) {
+) (any, error) {
 	// TODO: Figure out If we need to do anything with the client capabilities here.
 	_, err := parseRequestParameters[messages.InitializeParams](req.Params)
 	if err != nil {

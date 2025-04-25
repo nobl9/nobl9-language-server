@@ -16,7 +16,6 @@ import (
 
 	"github.com/nobl9/nobl9-language-server/internal/messages"
 	"github.com/nobl9/nobl9-language-server/internal/testutils"
-	"github.com/nobl9/nobl9-language-server/internal/version"
 )
 
 // TestCase is a test case that sends a single JSON RPC request
@@ -103,7 +102,7 @@ func TestLSP(t *testing.T) {
 					},
 					ServerInfo: messages.ServerInfo{
 						Name:    "nobl9-language-server",
-						Version: version.GetVersion(),
+						Version: "1.0.0-test",
 					},
 				},
 			},
@@ -295,7 +294,7 @@ func TestLSP(t *testing.T) {
 							},
 							{
 								Message: "string must match regular expression: " +
-									"'^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$' (e.g. 'my-name', '123-abc');" +
+									"'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$' (e.g. 'my-name', '123-abc');" +
 									" an RFC-1123 compliant label name must consist of lower case" +
 									" alphanumeric characters or '-', and must start and end with" +
 									" an alphanumeric character",

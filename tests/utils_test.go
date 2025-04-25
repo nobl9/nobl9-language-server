@@ -30,6 +30,7 @@ func newServerCommand(t *testing.T, ctx context.Context) *serverCommand {
 		ctx,
 		"go",
 		"run",
+    "-ldflags=-X github.com/nobl9/nobl9-language-server/internal/version.BuildVersion=1.0.0-test",
 		filepath.Join(root, "cmd", "nobl9-language-server", "main.go"),
 		"-logFilePath="+logFile,
 		"-logLevel=TRACE",
