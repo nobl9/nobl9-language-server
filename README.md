@@ -22,7 +22,8 @@ so that the IDE can access it by calling `nobl9-language-server`
 executable.
 If installed outside the PATH, the location must be supplied to
 the IDE through a dedicated option.
-Refer to specific IDE and plugin/extension documentation for more details.
+Refer to [specific IDE and plugin/extension](#integrations)
+documentation for more details.
 
 ### Script
 
@@ -94,7 +95,7 @@ Full, working configuration can be found [here](./docs/neovim-config/init.lua).
 You can play with it and adjust to your needs.
 
 ```bash
-nvim --clean -u ./neovim-config/init.lua service.yaml
+nvim --clean -u ./docs/neovim-config/init.lua service.yaml
 ```
 
 ## Features
@@ -121,9 +122,9 @@ Server supports the following LSP features:
     <img src="./docs/assets/hover-documentation-property.gif" alt="Example Image" width="800" />
   - [x] Nobl9 resource documentation
     <img src="./docs/assets/hover-documentation-references.gif" alt="Example Image" width="800" />
-- [x] Snippets
-  <img src="./docs/assets/code-actions.gif" alt="Example Image" width="800" />
 - [x] Code Actions
+  <img src="./docs/assets/code-actions.gif" alt="Example Image" width="800" />
+- [x] Snippets
   <img src="./docs/assets/snippets.gif" alt="Example Image" width="800" />
 
 ## How it works
@@ -179,7 +180,7 @@ nobl9-language-server --logFilePath=/path/to/my-log-file.txt
 # Remember to quote them if they include glob patterns!
 # If this option is provided, the server will only work with the files matching these patterns.
 # Env: NOBL9_LANGUAGE_SERVER_FILE_PATTERNS
-nobl9-language-serve --filePatterns='foo,bar/*,baz/**/*.yml'
+nobl9-language-server --filePatterns='foo,bar/*,baz/**/*.yml'
 
 # Display version information.
 nobl9-language-server version
@@ -234,7 +235,6 @@ Example:
 ```bash
 export NOBL9_LANGUAGE_SERVER_CLIENT_ID=<your-client-id>
 export NOBL9_LANGUAGE_SERVER_CLIENT_SECRET=<your-client-secret>
-nobl9-language-server
 ```
 
 ## Development
