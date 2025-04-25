@@ -2,6 +2,7 @@ package codeactions
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/nobl9/nobl9-go/manifest"
 	"github.com/pkg/errors"
@@ -11,7 +12,7 @@ import (
 )
 
 type clientNotifier interface {
-	Notify(ctx context.Context, method string, params interface{}) error
+	Notify(ctx context.Context, method string, params any) error
 }
 
 type objectsRepo interface {
@@ -33,7 +34,7 @@ type Handler struct {
 	notifier    clientNotifier
 }
 
-func (h *Handler) HandleCodeAction(_ context.Context, params messages.CodeActionParams) (interface{}, error) {
+func (h *Handler) HandleCodeAction(_ context.Context, params messages.CodeActionParams) (any, error) {
 	actions := make([]messages.Command, 0, len(codeActionCommands))
 	for _, cmdName := range codeActionCommandNames {
 		cmd := codeActionCommands[cmdName]
@@ -46,7 +47,7 @@ func (h *Handler) HandleCodeAction(_ context.Context, params messages.CodeAction
 	return actions, nil
 }
 
-func (h *Handler) HandleExecuteCommand(ctx context.Context, params messages.ExecuteCommandParams) (interface{}, error) {
+func (h *Handler) HandleExecuteCommand(ctx context.Context, params messages.ExecuteCommandParams) (any, error) {
 	uri, ok := params.Arguments[0].(string)
 	if !ok {
 		return nil, errors.Errorf(
@@ -57,6 +58,11 @@ func (h *Handler) HandleExecuteCommand(ctx context.Context, params messages.Exec
 	if err != nil {
 		return nil, err
 	}
+	if file.Skip {
+		slog.DebugContext(ctx, "skipping file")
+		return nil, nil
+	}
+
 	objects := make([]manifest.Object, 0, len(file.Objects))
 	for _, obj := range file.Objects {
 		objects = append(objects, obj.Object)

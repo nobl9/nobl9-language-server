@@ -55,7 +55,7 @@ The binaries are available at
 
 ### Go install
 
-```shell
+```bash
 go install github.com/nobl9/nobl9-language-server/cmd/nobl9-language-server@latest
 ```
 

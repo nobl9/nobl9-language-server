@@ -39,11 +39,16 @@ type Handler struct {
 	providers []providerInterface
 }
 
-func (h *Handler) Handle(ctx context.Context, params messages.CompletionParams) (interface{}, error) {
+func (h *Handler) Handle(ctx context.Context, params messages.CompletionParams) (any, error) {
 	file, err := h.files.GetFile(params.TextDocument.URI)
 	if err != nil {
 		return nil, err
 	}
+	if file.Skip {
+		slog.DebugContext(ctx, "skipping file")
+		return nil, nil
+	}
+
 	var (
 		node *files.SimpleObjectNode
 		line *yamlastsimple.Line

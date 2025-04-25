@@ -181,14 +181,14 @@ func TestFS_OpenFile(t *testing.T) {
 		},
 		{
 			name:    "has Nobl9 apiVersion",
-			uri:     "file2",
+			uri:     "file://file2",
 			content: "apiVersion: n9/v1alpha",
 			version: 1,
 			setup:   func(fs *FS) {},
 		},
 		{
 			name:    "has server comment",
-			uri:     "file2",
+			uri:     "file://file2",
 			content: "# nobl9-language-server: activate\ncontent",
 			version: 1,
 			setup:   func(fs *FS) {},
@@ -217,6 +217,7 @@ func TestFS_OpenFile(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			fs := NewFS(tc.filePatterns)
 			tc.setup(fs)
+
 			err := fs.OpenFile(context.Background(), tc.uri, tc.content, tc.version)
 			switch {
 			case tc.error != nil:
@@ -226,10 +227,10 @@ func TestFS_OpenFile(t *testing.T) {
 				file, err := fs.GetFile(tc.uri)
 				require.NoError(t, err)
 
-				assert.Equal(t, tc.uri, file.URI)
-				assert.Equal(t, tc.content, file.Content)
-				assert.Equal(t, tc.version, file.Version)
-				assert.Equal(t, tc.skipped, file.Skip)
+				assert.Equal(t, tc.uri, file.URI, "uri")
+				assert.Equal(t, tc.content, file.Content, "content")
+				assert.Equal(t, tc.version, file.Version, "version")
+				assert.Equal(t, tc.skipped, file.Skip, "skipped")
 			}
 		})
 	}
@@ -249,13 +250,13 @@ func TestFS_UpdateFile(t *testing.T) {
 	}{
 		{
 			name:            "update existing file",
-			uri:             "file1",
-			content:         "new content",
-			expectedContent: "new content",
+			uri:             "file://file1",
+			content:         "apiVersion: n9/v1alpha",
+			expectedContent: "apiVersion: n9/v1alpha",
 			version:         2,
 			setup: func(fs *FS) {
-				fs.files["file1"] = &File{
-					URI:     "file1",
+				fs.files["file://file1"] = &File{
+					URI:     "file://file1",
 					Version: 1,
 					Content: "old content",
 				}
@@ -263,18 +264,47 @@ func TestFS_UpdateFile(t *testing.T) {
 		},
 		{
 			name:    "update non-existing file",
-			uri:     "file2",
+			uri:     "file://file2",
 			content: "new content",
 			version: 2,
 			setup:   func(fs *FS) {},
-			error:   errors.New("file not found: file2"),
+			error:   errors.New("file not found: file://file2"),
 		},
 		{
 			name:            "update with same version",
-			uri:             "file1",
+			uri:             "file://file1",
 			content:         "new content",
 			expectedContent: "old content",
 			version:         1,
+			setup: func(fs *FS) {
+				fs.files["file://file1"] = &File{
+					URI:     "file://file1",
+					Version: 1,
+					Content: "old content",
+				}
+			},
+		},
+		{
+			name:            "skipped with no Nobl9 apiVersion",
+			uri:             "file://file1",
+			content:         "content",
+			expectedContent: "content",
+			version:         2,
+			skipped:         true,
+			setup: func(fs *FS) {
+				fs.files["file://file1"] = &File{
+					URI:     "file://file1",
+					Version: 1,
+					Content: "old content",
+				}
+			},
+		},
+		{
+			name:         "invalid URI (pattern matching check)",
+			uri:          "file1",
+			content:      "content",
+			version:      2,
+			filePatterns: []string{"file0"},
 			setup: func(fs *FS) {
 				fs.files["file1"] = &File{
 					URI:     "file1",
@@ -282,78 +312,105 @@ func TestFS_UpdateFile(t *testing.T) {
 					Content: "old content",
 				}
 			},
+			error: errors.New(`failed to parse URI file1: parse "file1": invalid URI for request`),
 		},
 		{
-			name:    "skipped with no Nobl9 apiVersion",
-			uri:     "file1",
-			content: "content",
-			version: 1,
-			skipped: true,
-			setup:   func(fs *FS) {},
+			name:            "matching file pattern (name)",
+			uri:             "file://file1",
+			content:         "content",
+			expectedContent: "content",
+			version:         2,
+			filePatterns:    []string{"file0", "file1"},
+			setup: func(fs *FS) {
+				fs.files["file://file1"] = &File{
+					URI:     "file://file1",
+					Version: 1,
+					Content: "old content",
+				}
+			},
 		},
 		{
-			name:         "invalid URI (pattern matching check)",
-			uri:          "file1",
-			content:      "content",
-			version:      1,
-			filePatterns: []string{"file0"},
-			setup:        func(fs *FS) {},
-			error:        errors.New(`failed to parse URI file1: parse "file1": invalid URI for request`),
+			name:            "matching file pattern (pattern)",
+			uri:             "file:///home/me/nobl9/file1",
+			content:         "content",
+			expectedContent: "content",
+			version:         2,
+			filePatterns:    []string{"**/nobl9/*"},
+			setup: func(fs *FS) {
+				fs.files["file:///home/me/nobl9/file1"] = &File{
+					URI:     "file:///home/me/nobl9/file1",
+					Version: 1,
+					Content: "old content",
+				}
+			},
 		},
 		{
-			name:         "matching file pattern (name)",
-			uri:          "file://file1",
-			content:      "content",
-			version:      1,
-			filePatterns: []string{"file0", "file1"},
-			setup:        func(fs *FS) {},
+			name:            "has Nobl9 apiVersion",
+			uri:             "file://file1",
+			content:         "apiVersion: n9/v1alpha",
+			expectedContent: "apiVersion: n9/v1alpha",
+			version:         2,
+			setup: func(fs *FS) {
+				fs.files["file://file1"] = &File{
+					URI:     "file://file1",
+					Version: 1,
+					Content: "old content",
+				}
+			},
 		},
 		{
-			name:         "matching file pattern (pattern)",
-			uri:          "file:///home/me/nobl9/file1",
-			content:      "content",
-			version:      1,
-			filePatterns: []string{"**/nobl9/*"},
-			setup:        func(fs *FS) {},
+			name:            "has server comment",
+			uri:             "file://file1",
+			content:         "# nobl9-language-server: activate\ncontent",
+			expectedContent: "# nobl9-language-server: activate\ncontent",
+			version:         2,
+			setup: func(fs *FS) {
+				fs.files["file://file1"] = &File{
+					URI:     "file://file1",
+					Version: 1,
+					Content: "old content",
+				}
+			},
 		},
 		{
-			name:    "has Nobl9 apiVersion",
-			uri:     "file2",
-			content: "apiVersion: n9/v1alpha",
-			version: 1,
-			setup:   func(fs *FS) {},
+			name:            "has Nobl9 apiVersion but skipped, does not match pattern",
+			uri:             "file://file2",
+			content:         "apiVersion: n9/v1alpha",
+			expectedContent: "apiVersion: n9/v1alpha",
+			version:         2,
+			filePatterns:    []string{"file0", "file1"},
+			skipped:         true,
+			setup: func(fs *FS) {
+				fs.files["file://file2"] = &File{
+					URI:     "file://file2",
+					Version: 1,
+					Content: "old content",
+				}
+			},
 		},
 		{
-			name:    "has server comment",
-			uri:     "file2",
-			content: "# nobl9-language-server: activate\ncontent",
-			version: 1,
-			setup:   func(fs *FS) {},
-		},
-		{
-			name:         "has Nobl9 apiVersion but skipped, does not match pattern",
-			uri:          "file://file2",
-			content:      "apiVersion: n9/v1alpha",
-			version:      1,
-			filePatterns: []string{"file0", "file1"},
-			skipped:      true,
-			setup:        func(fs *FS) {},
-		},
-		{
-			name:         "has server comment but skipped, does not match pattern",
-			uri:          "file://file2",
-			content:      "# nobl9-language-server: activate\ncontent",
-			version:      1,
-			filePatterns: []string{"file0", "file1"},
-			skipped:      true,
-			setup:        func(fs *FS) {},
+			name:            "has server comment but skipped, does not match pattern",
+			uri:             "file://file2",
+			content:         "# nobl9-language-server: activate\ncontent",
+			expectedContent: "# nobl9-language-server: activate\ncontent",
+			version:         2,
+			filePatterns:    []string{"file0", "file1"},
+			skipped:         true,
+			setup: func(fs *FS) {
+				fs.files["file://file2"] = &File{
+					URI:     "file://file2",
+					Version: 1,
+					Content: "old content",
+				}
+			},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			fs := NewFS(nil)
+			fs := NewFS(tc.filePatterns)
 			tc.setup(fs)
+
 			err := fs.UpdateFile(context.Background(), tc.uri, tc.content, tc.version)
 			switch {
 			case tc.error != nil:
@@ -362,10 +419,11 @@ func TestFS_UpdateFile(t *testing.T) {
 				require.NoError(t, err)
 				file, err := fs.GetFile(tc.uri)
 				require.NoError(t, err)
-				assert.Equal(t, tc.uri, file.URI)
-				assert.Equal(t, tc.expectedContent, file.Content)
-				assert.Equal(t, tc.version, file.Version)
-				assert.Equal(t, tc.skipped, file.Skip)
+
+				assert.Equal(t, tc.uri, file.URI, "uri")
+				assert.Equal(t, tc.expectedContent, file.Content, "content")
+				assert.Equal(t, tc.version, file.Version, "version")
+				assert.Equal(t, tc.skipped, file.Skip, "skipped")
 			}
 		})
 	}
