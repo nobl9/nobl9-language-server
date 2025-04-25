@@ -90,7 +90,7 @@ configs.nobl9_language_server = {
 }
 ```
 
-Full, working configuration can be found [here](./neovim-config/init.lua).
+Full, working configuration can be found [here](./docs/neovim-config/init.lua).
 You can play with it and adjust to your needs.
 
 ```bash
