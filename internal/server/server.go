@@ -22,12 +22,12 @@ import (
 
 const languageID = "yaml"
 
-func New(ctx context.Context, lspVersion string) (*Server, error) {
+func New(ctx context.Context, lspVersion string, filePatterns []string) (*Server, error) {
 	span, _ := logging.StartSpan(ctx, "server_start")
 	defer span.Finish()
 
 	var conn *jsonrpc2.Conn
-	filesystem := files.NewFS()
+	filesystem := files.NewFS(filePatterns)
 	notifier := &rpcConnectionNotifier{conn: conn}
 	registry, err := newHandlersRegistry(filesystem, notifier)
 	if err != nil {
@@ -85,7 +85,7 @@ func (s *Server) handleInitialize(
 	ctx context.Context,
 	conn *jsonrpc2.Conn,
 	req *jsonrpc2.Request,
-) (interface{}, error) {
+) (any, error) {
 	// TODO: Figure out If we need to do anything with the client capabilities here.
 	_, err := parseRequestParameters[messages.InitializeParams](req.Params)
 	if err != nil {

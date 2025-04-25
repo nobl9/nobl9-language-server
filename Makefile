@@ -6,12 +6,9 @@ SCRIPTS_DIR := ./scripts
 APP_NAME := nobl9-language-server
 VERSION_PKG := "$(shell go list -m)/internal/version"
 
-ifndef BRANCH
-  BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
-endif
-ifndef REVISION
-  REVISION := $(shell git rev-parse --short=8 HEAD)
-endif
+VERSION ?= 1.0.0-test
+BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
+REVISION ?= $(shell git rev-parse --short=8 HEAD)
 
 LDFLAGS := -s -w \
 	-X $(VERSION_PKG).BuildVersion=$(VERSION) \

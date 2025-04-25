@@ -3,75 +3,127 @@ package files
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 	"sync"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/pkg/errors"
 )
 
-func NewFS() *FS {
+func NewFS(filePatterns []string) *FS {
 	return &FS{
-		files: make(map[fileURI]*File),
-		mu:    new(sync.RWMutex),
+		files:        make(map[URI]*File),
+		filePatterns: filePatterns,
+		mu:           new(sync.RWMutex),
 	}
 }
 
-type fileURI = string
-
 type FS struct {
-	files map[fileURI]*File
-	mu    *sync.RWMutex
+	files map[URI]*File
+	// filePatterns are assumed to be validated and normalized with [filepath.ToSlash].
+	filePatterns []string
+	mu           *sync.RWMutex
 }
 
 // GetFile returns a copy of [File] by its URI.
 // Otherwise, if the file gets updated it could result in concurrency issues.
-func (f *FS) GetFile(uri fileURI) (*File, error) {
-	f.mu.RLock()
-	defer f.mu.RUnlock()
-	file, ok := f.files[uri]
+func (fs *FS) GetFile(uri URI) (*File, error) {
+	fs.mu.RLock()
+	defer fs.mu.RUnlock()
+	file, ok := fs.files[uri]
 	if !ok {
 		return nil, fmt.Errorf("file not found: %s", uri)
 	}
 	return file.copy(), nil
 }
 
-func (f *FS) HasFile(uri fileURI) bool {
-	f.mu.RLock()
-	defer f.mu.RUnlock()
-	_, hasFile := f.files[uri]
+func (fs *FS) HasFile(uri URI) bool {
+	fs.mu.RLock()
+	defer fs.mu.RUnlock()
+	_, hasFile := fs.files[uri]
 	return hasFile
 }
 
-func (f *FS) CloseFile(uri fileURI) error {
-	if !f.HasFile(uri) {
-		return errors.New(uri + " file already closed")
+func (fs *FS) CloseFile(uri URI) error {
+	if !fs.HasFile(uri) {
+		return errors.Errorf("file already closed: %s", uri)
 	}
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	if _, hasFile := f.files[uri]; !hasFile {
-		return errors.New(uri + " file already closed")
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	if _, hasFile := fs.files[uri]; !hasFile {
+		return errors.Errorf("file already closed: %s", uri)
 	}
-	delete(f.files, uri)
+	delete(fs.files, uri)
 	return nil
 }
 
-func (f *FS) OpenFile(ctx context.Context, uri fileURI, content string, version int) error {
-	if f.HasFile(uri) {
+func (fs *FS) OpenFile(ctx context.Context, uri URI, content string, version int) error {
+	if fs.HasFile(uri) {
 		return fmt.Errorf("file already exists: %s", uri)
 	}
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	file := NewFile(ctx, uri, version, content)
-	f.files[uri] = file
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	file := &File{URI: uri}
+	if err := fs.updateFile(ctx, file, content, version); err != nil {
+		return err
+	}
+	fs.files[uri] = file
 	return nil
 }
 
-func (f *FS) UpdateFile(ctx context.Context, uri fileURI, content string, version int) error {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	file, ok := f.files[uri]
+func (fs *FS) UpdateFile(ctx context.Context, uri URI, content string, version int) error {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	file, ok := fs.files[uri]
 	if !ok {
 		return fmt.Errorf("file not found: %s", uri)
 	}
+	return fs.updateFile(ctx, file, content, version)
+}
+
+func (fs *FS) updateFile(ctx context.Context, file *File, content string, version int) error {
+	skipFile, err := fs.shouldSkipFile(file.URI, content)
+	if err != nil {
+		return err
+	}
+	if skipFile {
+		file.UpdateSkipped(version, content)
+		return nil
+	}
 	file.Update(ctx, version, content)
 	return nil
+}
+
+const (
+	serverActivateComment = "# nobl9-language-server: activate"
+	nobl9ApiVersionPrefix = "apiVersion: n9/"
+)
+
+func (fs *FS) shouldSkipFile(uri URI, content string) (bool, error) {
+	if len(fs.filePatterns) == 0 {
+		if strings.HasPrefix(content, serverActivateComment) ||
+			strings.Contains(content, nobl9ApiVersionPrefix) {
+			return false, nil
+		}
+		return true, nil
+	}
+
+	fileName, err := filePathFromURI(uri)
+	if err != nil {
+		return true, err
+	}
+	fileName = filepath.ToSlash(fileName)
+	for _, pattern := range fs.filePatterns {
+		ok, err := doublestar.Match(pattern, fileName)
+		if err != nil {
+			return true, err
+		}
+		// If the file matches the pattern, don't skip it.
+		if ok {
+			return false, nil
+		}
+	}
+	// No matches found, skip the file.
+	return true, nil
 }

@@ -12,7 +12,8 @@ import (
 )
 
 func TestNewFile(t *testing.T) {
-	file := NewFile(context.Background(), "file1", 1, "content")
+	file := &File{URI: "file1"}
+	file.Update(context.Background(), 1, "content")
 
 	require.NotNil(t, file)
 	assert.Equal(t, "file1", file.URI)
@@ -30,11 +31,11 @@ func TestFile_Update(t *testing.T) {
 		outFile *File
 	}{
 		{
-			name:    "initial zero version",
+			name:    "initial first version",
 			content: "content: foo",
-			version: 0,
-			inFile:  &File{Version: 0},
-			outFile: &File{Version: 0, Content: "content: foo"},
+			version: 1,
+			inFile:  &File{},
+			outFile: &File{Version: 1, Content: "content: foo"},
 		},
 		{
 			name:    "version upgrade",

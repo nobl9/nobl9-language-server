@@ -31,6 +31,11 @@ func (h *Handler) Handle(ctx context.Context, item messages.TextDocumentItem) (a
 	if err != nil {
 		return nil, err
 	}
+	if file.Skip {
+		slog.DebugContext(ctx, "skipping file")
+		return nil, nil
+	}
+
 	params := messages.PublishDiagnosticsParams{
 		URI:     item.URI,
 		Version: item.Version,
