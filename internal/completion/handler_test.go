@@ -32,7 +32,7 @@ type handlerTestCase struct {
 func TestHandler_Handle(t *testing.T) {
 	t.Parallel()
 
-	fileSystem := files.NewFS()
+	fileSystem := files.NewFS(nil)
 	testutils.RegisterTestFiles(t, fileSystem, testDir)
 
 	docs, err := sdkdocs.New()
@@ -333,7 +333,10 @@ spec:
 
 			result, err := handler.Handle(context.Background(), test.params)
 			require.NoError(t, err)
-			items := result.([]messages.CompletionItem)
+			items, ok := result.([]messages.CompletionItem)
+			if !ok {
+				t.Fatalf("unexpected result type: %T", result)
+			}
 			if len(test.expected) > 0 {
 				require.NotNil(t, items)
 			}

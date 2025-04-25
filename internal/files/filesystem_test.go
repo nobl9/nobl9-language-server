@@ -12,9 +12,9 @@ import (
 func TestFS_CloseFile(t *testing.T) {
 	tests := []struct {
 		name     string
-		uri      fileURI
+		uri      URI
 		setup    func(fs *FS)
-		expected map[fileURI]*File
+		expected map[URI]*File
 		error    error
 	}{
 		{
@@ -24,7 +24,7 @@ func TestFS_CloseFile(t *testing.T) {
 				fs.files["file1"] = &File{}
 				fs.files["file2"] = &File{}
 			},
-			expected: map[fileURI]*File{
+			expected: map[URI]*File{
 				"file1": {URI: "file1"},
 			},
 		},
@@ -32,20 +32,20 @@ func TestFS_CloseFile(t *testing.T) {
 			name:  "close non-existing file",
 			uri:   "file2",
 			setup: func(fs *FS) {},
-			expected: map[fileURI]*File{
+			expected: map[URI]*File{
 				"file1": {URI: "file1"},
 			},
-			error: errors.New("file2 file already closed"),
+			error: errors.New("file already closed: file2"),
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fs := NewFS()
-			tt.setup(fs)
-			err := fs.CloseFile(tt.uri)
-			if tt.error != nil {
-				assert.EqualError(t, err, tt.error.Error())
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			fs := NewFS(nil)
+			tc.setup(fs)
+			err := fs.CloseFile(tc.uri)
+			if tc.error != nil {
+				assert.EqualError(t, err, tc.error.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -56,7 +56,7 @@ func TestFS_CloseFile(t *testing.T) {
 func TestFS_GetFile(t *testing.T) {
 	tests := []struct {
 		name     string
-		uri      fileURI
+		uri      URI
 		setup    func(fs *FS)
 		error    error
 		expected *File
@@ -77,16 +77,16 @@ func TestFS_GetFile(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fs := NewFS()
-			tt.setup(fs)
-			file, err := fs.GetFile(tt.uri)
-			if tt.error != nil {
-				assert.EqualError(t, err, tt.error.Error())
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			fs := NewFS(nil)
+			tc.setup(fs)
+			file, err := fs.GetFile(tc.uri)
+			if tc.error != nil {
+				assert.EqualError(t, err, tc.error.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.expected, file)
+				assert.Equal(t, tc.expected, file)
 			}
 		})
 	}
@@ -95,7 +95,7 @@ func TestFS_GetFile(t *testing.T) {
 func TestFS_HasFile(t *testing.T) {
 	tests := []struct {
 		name   string
-		uri    fileURI
+		uri    URI
 		setup  func(fs *FS)
 		expect bool
 	}{
@@ -116,31 +116,26 @@ func TestFS_HasFile(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fs := NewFS()
-			tt.setup(fs)
-			assert.Equal(t, tt.expect, fs.HasFile(tt.uri))
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			fs := NewFS(nil)
+			tc.setup(fs)
+			assert.Equal(t, tc.expect, fs.HasFile(tc.uri))
 		})
 	}
 }
 
 func TestFS_OpenFile(t *testing.T) {
 	tests := []struct {
-		name    string
-		uri     fileURI
-		content string
-		version int
-		setup   func(fs *FS)
-		error   error
+		name         string
+		uri          URI
+		content      string
+		version      int
+		filePatterns []string
+		skipped      bool
+		setup        func(fs *FS)
+		error        error
 	}{
-		{
-			name:    "open new file",
-			uri:     "file1",
-			content: "content",
-			version: 1,
-			setup:   func(fs *FS) {},
-		},
 		{
 			name:    "open existing file",
 			uri:     "file1",
@@ -151,23 +146,90 @@ func TestFS_OpenFile(t *testing.T) {
 			},
 			error: errors.New("file already exists: file1"),
 		},
+		{
+			name:    "skipped with no Nobl9 apiVersion",
+			uri:     "file1",
+			content: "content",
+			version: 1,
+			skipped: true,
+			setup:   func(fs *FS) {},
+		},
+		{
+			name:         "invalid URI (pattern matching check)",
+			uri:          "file1",
+			content:      "content",
+			version:      1,
+			filePatterns: []string{"file0"},
+			setup:        func(fs *FS) {},
+			error:        errors.New(`failed to parse URI file1: parse "file1": invalid URI for request`),
+		},
+		{
+			name:         "matching file pattern (name)",
+			uri:          "file://file1",
+			content:      "content",
+			version:      1,
+			filePatterns: []string{"file0", "file1"},
+			setup:        func(fs *FS) {},
+		},
+		{
+			name:         "matching file pattern (pattern)",
+			uri:          "file:///home/me/nobl9/file1",
+			content:      "content",
+			version:      1,
+			filePatterns: []string{"**/nobl9/*"},
+			setup:        func(fs *FS) {},
+		},
+		{
+			name:    "has Nobl9 apiVersion",
+			uri:     "file2",
+			content: "apiVersion: n9/v1alpha",
+			version: 1,
+			setup:   func(fs *FS) {},
+		},
+		{
+			name:    "has server comment",
+			uri:     "file2",
+			content: "# nobl9-language-server: activate\ncontent",
+			version: 1,
+			setup:   func(fs *FS) {},
+		},
+		{
+			name:         "has Nobl9 apiVersion but skipped, does not match pattern",
+			uri:          "file://file2",
+			content:      "apiVersion: n9/v1alpha",
+			version:      1,
+			filePatterns: []string{"file0", "file1"},
+			skipped:      true,
+			setup:        func(fs *FS) {},
+		},
+		{
+			name:         "has server comment but skipped, does not match pattern",
+			uri:          "file://file2",
+			content:      "# nobl9-language-server: activate\ncontent",
+			version:      1,
+			filePatterns: []string{"file0", "file1"},
+			skipped:      true,
+			setup:        func(fs *FS) {},
+		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fs := NewFS()
-			tt.setup(fs)
-			err := fs.OpenFile(context.Background(), tt.uri, tt.content, tt.version)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			fs := NewFS(tc.filePatterns)
+			tc.setup(fs)
+			err := fs.OpenFile(context.Background(), tc.uri, tc.content, tc.version)
 			switch {
-			case tt.error != nil:
-				assert.EqualError(t, err, tt.error.Error())
+			case tc.error != nil:
+				assert.EqualError(t, err, tc.error.Error())
 			default:
 				require.NoError(t, err)
-				file, err := fs.GetFile(tt.uri)
+				file, err := fs.GetFile(tc.uri)
 				require.NoError(t, err)
-				assert.Equal(t, tt.uri, file.URI)
-				assert.Equal(t, tt.content, file.Content)
-				assert.Equal(t, tt.version, file.Version)
+
+				assert.Equal(t, tc.uri, file.URI)
+				assert.Equal(t, tc.content, file.Content)
+				assert.Equal(t, tc.version, file.Version)
+				assert.Equal(t, tc.skipped, file.Skip)
 			}
 		})
 	}
@@ -176,10 +238,12 @@ func TestFS_OpenFile(t *testing.T) {
 func TestFS_UpdateFile(t *testing.T) {
 	tests := []struct {
 		name            string
-		uri             fileURI
+		uri             URI
 		content         string
 		expectedContent string
 		version         int
+		filePatterns    []string
+		skipped         bool
 		setup           func(fs *FS)
 		error           error
 	}{
@@ -219,23 +283,89 @@ func TestFS_UpdateFile(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:    "skipped with no Nobl9 apiVersion",
+			uri:     "file1",
+			content: "content",
+			version: 1,
+			skipped: true,
+			setup:   func(fs *FS) {},
+		},
+		{
+			name:         "invalid URI (pattern matching check)",
+			uri:          "file1",
+			content:      "content",
+			version:      1,
+			filePatterns: []string{"file0"},
+			setup:        func(fs *FS) {},
+			error:        errors.New(`failed to parse URI file1: parse "file1": invalid URI for request`),
+		},
+		{
+			name:         "matching file pattern (name)",
+			uri:          "file://file1",
+			content:      "content",
+			version:      1,
+			filePatterns: []string{"file0", "file1"},
+			setup:        func(fs *FS) {},
+		},
+		{
+			name:         "matching file pattern (pattern)",
+			uri:          "file:///home/me/nobl9/file1",
+			content:      "content",
+			version:      1,
+			filePatterns: []string{"**/nobl9/*"},
+			setup:        func(fs *FS) {},
+		},
+		{
+			name:    "has Nobl9 apiVersion",
+			uri:     "file2",
+			content: "apiVersion: n9/v1alpha",
+			version: 1,
+			setup:   func(fs *FS) {},
+		},
+		{
+			name:    "has server comment",
+			uri:     "file2",
+			content: "# nobl9-language-server: activate\ncontent",
+			version: 1,
+			setup:   func(fs *FS) {},
+		},
+		{
+			name:         "has Nobl9 apiVersion but skipped, does not match pattern",
+			uri:          "file://file2",
+			content:      "apiVersion: n9/v1alpha",
+			version:      1,
+			filePatterns: []string{"file0", "file1"},
+			skipped:      true,
+			setup:        func(fs *FS) {},
+		},
+		{
+			name:         "has server comment but skipped, does not match pattern",
+			uri:          "file://file2",
+			content:      "# nobl9-language-server: activate\ncontent",
+			version:      1,
+			filePatterns: []string{"file0", "file1"},
+			skipped:      true,
+			setup:        func(fs *FS) {},
+		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fs := NewFS()
-			tt.setup(fs)
-			err := fs.UpdateFile(context.Background(), tt.uri, tt.content, tt.version)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			fs := NewFS(nil)
+			tc.setup(fs)
+			err := fs.UpdateFile(context.Background(), tc.uri, tc.content, tc.version)
 			switch {
-			case tt.error != nil:
-				assert.EqualError(t, err, tt.error.Error())
+			case tc.error != nil:
+				assert.EqualError(t, err, tc.error.Error())
 			default:
 				require.NoError(t, err)
-				file, err := fs.GetFile(tt.uri)
+				file, err := fs.GetFile(tc.uri)
 				require.NoError(t, err)
-				assert.Equal(t, tt.uri, file.URI)
-				assert.Equal(t, tt.expectedContent, file.Content)
-				assert.Equal(t, tt.version, file.Version)
+				assert.Equal(t, tc.uri, file.URI)
+				assert.Equal(t, tc.expectedContent, file.Content)
+				assert.Equal(t, tc.version, file.Version)
+				assert.Equal(t, tc.skipped, file.Skip)
 			}
 		})
 	}

@@ -12,7 +12,8 @@ import (
 )
 
 func TestNewFile(t *testing.T) {
-	file := NewFile(context.Background(), "file1", 1, "content")
+	file := &File{URI: "file1"}
+	file.Update(context.Background(), 1, "content")
 
 	require.NotNil(t, file)
 	assert.Equal(t, "file1", file.URI)

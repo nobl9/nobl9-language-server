@@ -24,7 +24,38 @@ import (
 	v1alphaSLO "github.com/nobl9/nobl9-go/manifest/v1alpha/slo"
 	v1alphaUserGroup "github.com/nobl9/nobl9-go/manifest/v1alpha/usergroup"
 	"github.com/pkg/errors"
+
+	"github.com/nobl9/nobl9-language-server/internal/yamlast"
 )
+
+// ObjectNode is a wrapper over single [manifest.Object] which holds both the object and its [yamlast.Node].
+type ObjectNode struct {
+	Kind    manifest.Kind
+	Version manifest.Version
+	Object  manifest.Object
+	Node    *yamlast.Node
+	// Err is the error that occurred while decoding the [manifest.Object] (if any).
+	Err error
+}
+
+func (o *ObjectNode) copy() *ObjectNode {
+	return &ObjectNode{
+		Kind:    o.Kind,
+		Version: o.Version,
+		Object:  o.Object,
+		Node:    o.Node,
+		Err:     o.Err,
+	}
+}
+
+func parseObjectNode(ctx context.Context, node *yamlast.Node) *ObjectNode {
+	object := &ObjectNode{Node: node}
+	object.Version, object.Kind, object.Err = inferObjectVersionAndKind(node.Node)
+	if object.Err == nil {
+		object.Object, object.Err = parseObject(ctx, object)
+	}
+	return object
+}
 
 func parseObject(ctx context.Context, object *ObjectNode) (manifest.Object, error) {
 	var buf bytes.Buffer

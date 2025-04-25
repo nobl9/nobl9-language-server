@@ -25,7 +25,7 @@ func TestHandler_Handle(t *testing.T) {
 		return messages.TextDocumentIdentifier{URI: filepath.Join(testFilesDir, name)}
 	}
 
-	fileSystem := files.NewFS()
+	fileSystem := files.NewFS(nil)
 	testutils.RegisterTestFiles(t, fileSystem, testFilesDir)
 
 	docs, err := sdkdocs.New()

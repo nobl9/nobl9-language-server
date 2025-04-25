@@ -36,7 +36,7 @@ type handlerTestCase struct {
 func TestHandler_Handle(t *testing.T) {
 	t.Parallel()
 
-	fileSystem := files.NewFS()
+	fileSystem := files.NewFS(nil)
 	testutils.RegisterTestFiles(t, fileSystem, inputsDir)
 
 	docs, err := sdkdocs.New()
