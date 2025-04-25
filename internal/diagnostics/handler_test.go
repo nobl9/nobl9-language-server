@@ -118,7 +118,7 @@ func TestHandler_Handle(t *testing.T) {
 				Diagnostics: []messages.Diagnostic{
 					{
 						Message: "string must match regular expression: " +
-							"'^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$' (e.g. 'my-name', '123-abc')" +
+							"'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$' (e.g. 'my-name', '123-abc')" +
 							"; an RFC-1123 compliant label name must consist of lower case alphanumeric characters" +
 							" or '-', and must start and end with an alphanumeric character",
 						Severity: messages.DiagnosticSeverityError,
