@@ -35,16 +35,6 @@ func (p SnippetsProvider) Complete(
 	_ *files.SimpleObjectNode,
 	line *yamlastsimple.Line,
 ) []messages.CompletionItem {
-	findLine := func(n int) *yamlastsimple.Line {
-		for _, node := range file {
-			line := node.Doc.FindLine(n - node.Doc.Offset)
-			if line != nil {
-				return line
-			}
-		}
-		return nil
-	}
-
 	path := line.GeneralizedPath
 	// We only support completions for the root of the document.
 	if path != "$" {
@@ -52,9 +42,10 @@ func (p SnippetsProvider) Complete(
 		return nil
 	}
 
+	prevLine := findLine(file, params.Position.Line-1, filterCommentAndEmptyLines)
+
 	items := make([]messages.CompletionItem, len(p.items))
 	copy(items, p.items)
-	prevLine := findLine(params.Position.Line - 1)
 	for i := range p.items {
 		if strings.HasPrefix(line.Path, "$[") {
 			items[i].InsertText = formatObjectToArrayElement(line, items[i].InsertText)
@@ -66,6 +57,32 @@ func (p SnippetsProvider) Complete(
 		}
 	}
 	return items
+}
+
+func findLine(
+	file files.SimpleObjectFile,
+	n int,
+	filter func(*yamlastsimple.Line) bool,
+) *yamlastsimple.Line {
+	for _, node := range file {
+		for {
+			line := node.Doc.FindLine(n - node.Doc.Offset)
+			if line == nil {
+				break
+			}
+			if filter(line) {
+				n--
+				continue
+			}
+			return line
+		}
+	}
+	return nil
+}
+
+func filterCommentAndEmptyLines(line *yamlastsimple.Line) bool {
+	return line.IsType(yamlastsimple.LineTypeComment) ||
+		line.IsType(yamlastsimple.LineTypeEmpty)
 }
 
 type snippetsConfigData struct {

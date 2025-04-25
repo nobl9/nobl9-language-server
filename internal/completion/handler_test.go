@@ -93,7 +93,7 @@ func TestHandler_Handle(t *testing.T) {
 				TextDocumentPositionParams: messages.TextDocumentPositionParams{
 					TextDocument: getTestFileURI("barebones.yaml"),
 					Position: messages.Position{
-						Line:      0,
+						Line:      1,
 						Character: 1,
 					},
 				},
@@ -143,7 +143,7 @@ func TestHandler_Handle(t *testing.T) {
 				TextDocumentPositionParams: messages.TextDocumentPositionParams{
 					TextDocument: getTestFileURI("complete-apiversion.yaml"),
 					Position: messages.Position{
-						Line:      0,
+						Line:      1,
 						Character: 13,
 					},
 				},
@@ -194,7 +194,7 @@ func TestHandler_Handle(t *testing.T) {
 				TextDocumentPositionParams: messages.TextDocumentPositionParams{
 					TextDocument: getTestFileURI("snippet.yaml"),
 					Position: messages.Position{
-						Line:      0,
+						Line:      1,
 						Character: 0,
 					},
 				},
@@ -217,7 +217,7 @@ spec:
 				TextDocumentPositionParams: messages.TextDocumentPositionParams{
 					TextDocument: getTestFileURI("snippet.yaml"),
 					Position: messages.Position{
-						Line:      3,
+						Line:      4,
 						Character: 0,
 					},
 				},
@@ -241,7 +241,7 @@ spec:
 				TextDocumentPositionParams: messages.TextDocumentPositionParams{
 					TextDocument: getTestFileURI("snippet.yaml"),
 					Position: messages.Position{
-						Line:      6,
+						Line:      7,
 						Character: 0,
 					},
 				},
@@ -264,7 +264,7 @@ spec:
 				TextDocumentPositionParams: messages.TextDocumentPositionParams{
 					TextDocument: getTestFileURI("snippet.yaml"),
 					Position: messages.Position{
-						Line:      9,
+						Line:      10,
 						Character: 0,
 					},
 				},
@@ -287,7 +287,7 @@ spec:
 				TextDocumentPositionParams: messages.TextDocumentPositionParams{
 					TextDocument: getTestFileURI("snippet.yaml"),
 					Position: messages.Position{
-						Line:      11,
+						Line:      12,
 						Character: 0,
 					},
 				},

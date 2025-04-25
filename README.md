@@ -15,7 +15,7 @@ It defines the protocol used between an editor or IDE and a language server
 (this project) that provides language features like auto complete,
 diagnose file, display documentation etc.
 
-## Install
+## Installation
 
 The Language Server binary has to be installed in your PATH,
 so that the IDE can access it by calling `nobl9-language-server`
@@ -72,7 +72,7 @@ Refer to the [plugin documentation](https://github.com/nobl9/nobl9-intellij-plat
 ### Neovim
 
 Minimal Neovim setup which assumes you've already configured
-snippets support and LSP configuration would look like this:
+snippets support and LSP would look like this:
 
 ```lua
 local lsp = require("lspconfig")
@@ -162,15 +162,54 @@ The Language Server comes with several configuration options.
 Each option can be supplied via a dedicated flag when starting the server.
 
 ```bash
+# Display help information.
+nobl9-language-server -h
+
 # Log level, by default 'INFO'.
 # One of: TRACE, DEBUG, INFO, WARN, ERROR.
-nobl9-language-server -logLevel=TRACE
+# Env: NOBL9_LANGUAGE_SERVER_LOG_LEVEL
+nobl9-language-server --logLevel=TRACE
+
 # Path to the server's log file.
-# By default it is written into 'nobl9-language-server.log'.
-nobl9-language-server -logFilePath=/path/to/my-log-file.txt
+# By default the logs are written into stderr.
+# Env: NOBL9_LANGUAGE_SERVER_LOG_FILE_PATH
+nobl9-language-server --logFilePath=/path/to/my-log-file.txt
+
+# Configure file patterns, comma separated list of patterns.
+# Remember to quote them if they include glob patterns!
+# If this option is provided, the server will only work with the files matching these patterns.
+# Env: NOBL9_LANGUAGE_SERVER_FILE_PATTERNS
+nobl9-language-serve --filePatterns='foo,bar/*,baz/**/*.yml'
+
 # Display version information.
-nobl9-language-server -version
+nobl9-language-server version
 ```
+
+### YAML
+
+> [!IMPORTANT] 
+By default, the language server will only offer its capabilities for files
+which contain the following text: `apiVersion: n9/`.
+
+If you're working on an empty file, the server won't work
+until you write this text.
+Likewise, If your file had this text, but you removed it
+(maybe you cleared the whole file), the server will no longer work.
+
+Internally, the server keeps track of **every** YAML file,
+even if it is skipped. In the current version of LSP, there's no way to tell
+the client we're skipping a file.
+If you experience overhead when working with many YAML files other than
+Nobl9 configuration, consider fine tuning your IDE to only send certain files
+to the server.
+
+How can I force the server to work on a file which does not include this text?
+
+- Add `# nobl9-language-server: activate` comment **to the top of your file**.
+- Configure file patterns with `--filePatterns` flag
+  (see [configuration](#configuration)).
+
+### Nobl9 API
 
 In order for the server to work correctly,
 it requires valid Nobl9 API access keys.
