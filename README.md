@@ -187,7 +187,7 @@ nobl9-language-server version
 
 ### YAML
 
-> [!IMPORTANT] 
+> [!IMPORTANT]
 By default, the language server will only offer its capabilities for files
 which contain the following text: `apiVersion: n9/`.
 

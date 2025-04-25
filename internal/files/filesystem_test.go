@@ -194,7 +194,7 @@ func TestFS_OpenFile(t *testing.T) {
 			setup:   func(fs *FS) {},
 		},
 		{
-			name:    "has Nobl9 apiVersion (preceeding comment)",
+			name:    "has Nobl9 apiVersion (preceding comment)",
 			uri:     "file://file2",
 			content: "# some comment\napiVersion: n9/v1alpha",
 			version: 1,
