@@ -31,6 +31,7 @@ func (h *Handler) Handle(ctx context.Context, item messages.TextDocumentItem) (a
 	if err != nil {
 		return nil, err
 	}
+	ctx = file.AddToLogContext(ctx)
 	if file.Skip {
 		slog.DebugContext(ctx, "skipping file")
 		return nil, nil

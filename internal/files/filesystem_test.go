@@ -180,6 +180,13 @@ func TestFS_OpenFile(t *testing.T) {
 			setup:        func(fs *FS) {},
 		},
 		{
+			name:    "has Nobl9 apiVersion - zero version",
+			uri:     "file://file2",
+			content: "apiVersion: n9/v1alpha",
+			version: 0,
+			setup:   func(fs *FS) {},
+		},
+		{
 			name:    "has Nobl9 apiVersion",
 			uri:     "file://file2",
 			content: "apiVersion: n9/v1alpha",

@@ -58,6 +58,7 @@ func (h *Handler) HandleExecuteCommand(ctx context.Context, params messages.Exec
 	if err != nil {
 		return nil, err
 	}
+	ctx = file.AddToLogContext(ctx)
 	if file.Skip {
 		slog.DebugContext(ctx, "skipping file")
 		return nil, nil

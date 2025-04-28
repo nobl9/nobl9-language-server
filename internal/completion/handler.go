@@ -44,6 +44,7 @@ func (h *Handler) Handle(ctx context.Context, params messages.CompletionParams) 
 	if err != nil {
 		return nil, err
 	}
+	ctx = file.AddToLogContext(ctx)
 	if file.Skip {
 		slog.DebugContext(ctx, "skipping file")
 		return nil, nil
