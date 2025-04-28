@@ -31,10 +31,13 @@ func main() {
 }
 
 func run(config *cli.Config) error {
-	logCloser := logging.Setup(logging.Config{
+	logCloser, err := logging.Setup(logging.Config{
 		LogFile:  config.LogFilePath,
 		LogLevel: config.LogLevel,
 	})
+	if err != nil {
+		return err
+	}
 	defer func() { _ = logCloser.Close() }()
 
 	conn, err := bootstrap(config)

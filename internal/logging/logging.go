@@ -6,7 +6,10 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"runtime"
+
+	"github.com/pkg/errors"
 )
 
 var logLevel slog.Level
@@ -16,19 +19,22 @@ var levelNames = map[slog.Leveler]string{
 	LevelTrace: "TRACE",
 }
 
-func Setup(flagConf Config) io.Closer {
-	conf := flagConf
+func Setup(conf Config) (io.Closer, error) {
 	var writer io.WriteCloser
-	if conf.LogFile != "" {
+	switch conf.LogFile != "" {
+	case true:
+		if err := os.MkdirAll(filepath.Dir(conf.LogFile), 0o700); err != nil {
+			return nil, errors.Wrap(err, "failed to create log output file directory path")
+		}
 		lf, err := os.OpenFile(conf.LogFile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
 		if err != nil {
-			slog.Error("failed to open log output file", slog.Any("error", err))
-			os.Exit(1)
+			return nil, errors.Wrap(err, "failed to open log output file")
 		}
 		writer = lf
-	} else {
+	default:
 		writer = os.Stderr
 	}
+
 	logLevel = conf.LogLevel.Level
 	jsonHandler := slog.NewJSONHandler(writer, &slog.HandlerOptions{
 		// We're using our own source handler.
@@ -51,7 +57,7 @@ func Setup(flagConf Config) io.Closer {
 	handler := sourceHandler{Handler: jsonHandler}
 	defaultLogger := slog.New(contextHandler{Handler: handler})
 	slog.SetDefault(defaultLogger)
-	return writer
+	return writer, nil
 }
 
 func GetLogLevel() slog.Level {
