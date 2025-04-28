@@ -64,7 +64,7 @@ func (fs *FS) OpenFile(ctx context.Context, uri URI, content string, version int
 	}
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
-	file := &File{URI: uri}
+	file := &File{URI: uri, Version: -1}
 	if err := fs.updateFile(ctx, file, content, version); err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (fs *FS) updateFile(ctx context.Context, file *File, content string, versio
 		return err
 	}
 	if skipFile {
-		file.UpdateSkipped(version, content)
+		file.UpdateSkipped(ctx, version, content)
 		return nil
 	}
 	file.Update(ctx, version, content)

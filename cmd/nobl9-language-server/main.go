@@ -24,7 +24,7 @@ import (
 
 func main() {
 	cmd := cli.New(run)
-	if err := cmd.Run(); err != nil {
+	if err := cmd.Run(context.Background()); err != nil {
 		slog.Error("server command returned error", slog.Any("error", err))
 		log.Fatal(err)
 	}

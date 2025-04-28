@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,7 +9,7 @@ import (
 
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/nobl9/nobl9-language-server/internal/config"
 	"github.com/nobl9/nobl9-language-server/internal/logging"
@@ -18,7 +19,7 @@ import (
 const envPrefix = "NOBL9_LANGUAGE_SERVER_"
 
 type Command struct {
-	app    *cli.App
+	app    *cli.Command
 	config *Config
 }
 
@@ -33,7 +34,7 @@ func New(mainFunc func(*Config) error) *Command {
 		config: new(Config),
 	}
 
-	cmd.app = &cli.App{
+	cmd.app = &cli.Command{
 		Name:  config.ServerName,
 		Usage: "Language server implementing LSP (Language Server Protocol) for Nobl9 configuration files",
 		Description: `LSP stands for Language Server Protocol.
@@ -41,33 +42,33 @@ It defines the protocol used between an editor or an IDE and a language server (
 It provides language features like auto complete, diagnose file, display documentation etc.
 
 To learn more about Nobl9 configuration schema, visit: https://docs.nobl9.com/yaml-guide`,
-		Action: func(*cli.Context) error { return mainFunc(cmd.config) },
+		Action: func(context.Context, *cli.Command) error { return mainFunc(cmd.config) },
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "logLevel",
 				Usage:   "Log messages at the provided level",
 				Value:   "INFO",
-				EnvVars: []string{envPrefix + "LOG_LEVEL"},
-				Action:  func(_ *cli.Context, s string) error { return cmd.parseLogLevelFlag(s) },
+				Sources: cli.EnvVars(envPrefix + "LOG_LEVEL"),
+				Action:  func(_ context.Context, _ *cli.Command, s string) error { return cmd.parseLogLevelFlag(s) },
 			},
 			&cli.StringFlag{
 				Name:    "logFilePath",
 				Usage:   "Write logged messages to the provided file, by default logs are written to stderr",
-				EnvVars: []string{envPrefix + "LOG_FILE_PATH"},
-				Action:  func(ctx *cli.Context, s string) error { return cmd.parseLogFilePath(s) },
+				Sources: cli.EnvVars(envPrefix + "LOG_FILE_PATH"),
+				Action:  func(_ context.Context, _ *cli.Command, s string) error { return cmd.parseLogFilePath(s) },
 			},
 			&cli.StringFlag{
 				Name:    "filePatterns",
 				Usage:   "Comma separated list of file patterns to process",
-				EnvVars: []string{envPrefix + "FILE_PATTERNS"},
-				Action:  func(_ *cli.Context, s string) error { return cmd.parseFilePatternsFlag(s) },
+				Sources: cli.EnvVars(envPrefix + "FILE_PATTERNS"),
+				Action:  func(_ context.Context, _ *cli.Command, s string) error { return cmd.parseFilePatternsFlag(s) },
 			},
 		},
 		Commands: []*cli.Command{
 			{
 				Name:  "version",
 				Usage: "Show version information",
-				Action: func(*cli.Context) error {
+				Action: func(context.Context, *cli.Command) error {
 					fmt.Println(version.GetUserAgent())
 					return nil
 				},
@@ -78,8 +79,8 @@ To learn more about Nobl9 configuration schema, visit: https://docs.nobl9.com/ya
 	return cmd
 }
 
-func (c *Command) Run() error {
-	return c.app.Run(os.Args)
+func (c *Command) Run(ctx context.Context) error {
+	return c.app.Run(ctx, os.Args)
 }
 
 func (c *Command) parseLogLevelFlag(s string) error {

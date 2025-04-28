@@ -2,7 +2,9 @@ package files
 
 import (
 	"context"
+	"log/slog"
 
+	"github.com/nobl9/nobl9-language-server/internal/logging"
 	"github.com/nobl9/nobl9-language-server/internal/yamlast"
 )
 
@@ -21,6 +23,13 @@ type File struct {
 	Err error
 }
 
+// AddToLogContext adds basic file details to the logging context.
+func (f *File) AddToLogContext(ctx context.Context) context.Context {
+	return logging.ContextAttr(ctx,
+		slog.String("fileURI", f.URI),
+		slog.Int("fileVersion", f.Version))
+}
+
 // FindObject returns the [ObjectNode] which spans over the specified line.
 func (f *File) FindObject(line int) *ObjectNode {
 	for _, object := range f.Objects {
@@ -32,7 +41,7 @@ func (f *File) FindObject(line int) *ObjectNode {
 }
 
 func (f *File) Update(ctx context.Context, version int, content string) {
-	if !f.shouldUpdate(version) {
+	if !f.shouldUpdate(ctx, version) {
 		return
 	}
 	f.Version = version
@@ -56,8 +65,8 @@ func (f *File) Update(ctx context.Context, version int, content string) {
 
 // UpdateSkipped updates the file version and content without doing any parsing.
 // It also sets the [File.Skip] flag to true.
-func (f *File) UpdateSkipped(version int, content string) {
-	if !f.shouldUpdate(version) {
+func (f *File) UpdateSkipped(ctx context.Context, version int, content string) {
+	if !f.shouldUpdate(ctx, version) {
 		return
 	}
 	f.Version = version
@@ -67,8 +76,12 @@ func (f *File) UpdateSkipped(version int, content string) {
 
 // shouldUpdate checks if version has changed to a newer one.
 // If not there's no need to update the file.
-func (f *File) shouldUpdate(version int) bool {
-	return version > f.Version
+func (f *File) shouldUpdate(ctx context.Context, version int) bool {
+	shouldUpdate := version > f.Version
+	if !shouldUpdate {
+		slog.DebugContext(ctx, "file version has not changed, skipping update")
+	}
+	return shouldUpdate
 }
 
 func (f *File) copy() *File {
