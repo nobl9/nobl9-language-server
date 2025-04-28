@@ -11,7 +11,7 @@ Language server which implements [LSP protocol](https://microsoft.github.io/lang
 for Nobl9 configuration files.
 
 LSP stands for Language Server Protocol.
-It defines the protocol used between an editor or IDE and a language server
+It defines the protocol used between an editor or an IDE and a language server
 (this project) that provides language features like auto complete,
 diagnose file, display documentation etc.
 
