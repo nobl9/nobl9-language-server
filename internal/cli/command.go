@@ -33,9 +33,15 @@ func New(mainFunc func(*Config) error) *Command {
 	}
 
 	cmd.app = &cli.App{
-		Name:   config.ServerName,
-		Usage:  "make an explosive entrance",
-		Action: func(*cli.Context) error { return mainFunc(cmd.config) },
+		Name:        config.ServerName,
+		Usage:       "Language server implementing LSP (Language Server Protocol) for Nobl9 configuration files",
+		Description: `LSP stands for Language Server Protocol.
+It defines the protocol used between an editor or an IDE and a language server (this program).
+It provides language features like auto complete, diagnose file, display documentation etc.
+
+To learn more about Nobl9 configuration schema, visit: https://docs.nobl9.com/yaml-guide`,
+		Version:     version.GetUserAgent(),
+		Action:      func(*cli.Context) error { return mainFunc(cmd.config) },
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "logLevel",
