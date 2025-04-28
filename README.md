@@ -172,6 +172,7 @@ nobl9-language-server -h
 nobl9-language-server --logLevel=TRACE
 
 # Path to the server's log file.
+# It supports env variables and resolves '~' to user's home directory.
 # By default the logs are written into stderr.
 # Env: NOBL9_LANGUAGE_SERVER_LOG_FILE_PATH
 nobl9-language-server --logFilePath=/path/to/my-log-file.txt

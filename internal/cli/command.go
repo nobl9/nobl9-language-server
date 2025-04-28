@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v4"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
 	"github.com/nobl9/nobl9-language-server/internal/config"
@@ -40,8 +41,7 @@ It defines the protocol used between an editor or an IDE and a language server (
 It provides language features like auto complete, diagnose file, display documentation etc.
 
 To learn more about Nobl9 configuration schema, visit: https://docs.nobl9.com/yaml-guide`,
-		Version: version.GetUserAgent(),
-		Action:  func(*cli.Context) error { return mainFunc(cmd.config) },
+		Action: func(*cli.Context) error { return mainFunc(cmd.config) },
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "logLevel",
@@ -51,10 +51,10 @@ To learn more about Nobl9 configuration schema, visit: https://docs.nobl9.com/ya
 				Action:  func(_ *cli.Context, s string) error { return cmd.parseLogLevelFlag(s) },
 			},
 			&cli.StringFlag{
-				Name:        "logFilePath",
-				Usage:       "Write logged messages to the provided file, by default logs are written to stderr",
-				Destination: &cmd.config.LogFilePath,
-				EnvVars:     []string{envPrefix + "LOG_FILE_PATH"},
+				Name:    "logFilePath",
+				Usage:   "Write logged messages to the provided file, by default logs are written to stderr",
+				EnvVars: []string{envPrefix + "LOG_FILE_PATH"},
+				Action:  func(ctx *cli.Context, s string) error { return cmd.parseLogFilePath(s) },
 			},
 			&cli.StringFlag{
 				Name:    "filePatterns",
@@ -105,5 +105,21 @@ func (c *Command) parseFilePatternsFlag(s string) error {
 		filePatterns = append(filePatterns, p)
 	}
 	c.config.FilePatterns = filePatterns
+	return nil
+}
+
+func (c *Command) parseLogFilePath(s string) error {
+	s = os.ExpandEnv(s)
+	if !strings.HasPrefix(s, "~") {
+		c.config.LogFilePath = s
+		return nil
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return errors.Wrap(err, "failed to determine user home directory")
+	}
+	s = filepath.Clean(filepath.Join(home, strings.TrimPrefix(s, "~")))
+	c.config.LogFilePath = s
 	return nil
 }

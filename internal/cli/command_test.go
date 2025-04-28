@@ -65,3 +65,29 @@ func Test_parseFilePatternsFlag(t *testing.T) {
 		})
 	}
 }
+
+func Test_parseLogFilePath(t *testing.T) {
+	t.Setenv("FOO", "foo")
+	t.Setenv("HOME", "bar")
+
+	tests := []struct {
+		in  string
+		out string
+	}{
+		{"/path/to/this", "/path/to/this"},
+		{"file", "file"},
+		{"/path/to/$FOO", "/path/to/foo"},
+		{"$FOO/file", "foo/file"},
+		{"~/file", "bar/file"},
+		{"~/$FOO/to/$FOO", "bar/foo/to/foo"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.in, func(t *testing.T) {
+			cmd := &Command{config: new(Config)}
+			err := cmd.parseLogFilePath(tc.in)
+			require.NoError(t, err)
+			assert.Equal(t, tc.out, cmd.config.LogFilePath)
+		})
+	}
+}
