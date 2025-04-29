@@ -23,5 +23,8 @@ jobs:
           cache: false
       - name: Run unit tests
         run: make test
-      - name: Debug
-        run: cat /home/runner/.local/state/nvim/lsp.log
+      - name: Debug failure
+        if: failure()
+        run: |
+          cat ./plenary-test.log 
+          cat /home/runner/.local/state/nvim/lsp.log
