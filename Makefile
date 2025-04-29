@@ -59,9 +59,9 @@ test/go:
 	$(call _print_step,Running Go tests)
 	go test -race -cover ./...
 
-## Run plenary unit tests in headless NeoVim instance.
+## Run plenary unit tests in headless Neovim instance.
 test/neovim:
-	$(call _print_step,Running plenary NeoVim \(Lua\) tests)
+	$(call _print_step,Running plenary Neovim \(Lua\) tests)
 	nvim \
 		--headless \
 		--noplugin \
