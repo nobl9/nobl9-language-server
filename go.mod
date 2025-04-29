@@ -5,11 +5,11 @@ go 1.24
 require (
 	github.com/bmatcuk/doublestar/v4 v4.8.1
 	github.com/goccy/go-yaml v1.17.1
-	github.com/nobl9/nobl9-go v0.101.1
+	github.com/nobl9/nobl9-go v0.102.0
 	github.com/pkg/errors v0.9.1
 	github.com/sourcegraph/jsonrpc2 v0.2.0
 	github.com/stretchr/testify v1.10.0
-	github.com/urfave/cli/v3 v3.3.1
+	github.com/urfave/cli/v3 v3.3.2
 )
 
 require (
