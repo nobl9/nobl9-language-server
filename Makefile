@@ -50,18 +50,18 @@ build:
 	$(call _print_step,Building server binary)
 	go build -ldflags="$(LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME) ./cmd/nobl9-language-server/
 
-.PHONY: test test/go test/neovim
+.PHONY: test test/go test/lua
 ## Run all unit tests.
-test: test/go test/neovim
+test: test/go test/lua
 
 ## Run Go unit tests.
 test/go:
 	$(call _print_step,Running Go tests)
 	go test -race -cover ./...
 
-## Run plenary unit tests in headless Neovim instance.
-test/neovim:
-	$(call _print_step,Running plenary Neovim \(Lua\) tests)
+## Run plenary unit tests on headless Neovim instance.
+test/lua: build
+	$(call _print_step,Running plenary Lua \(Neovim\) tests)
 	nvim \
 		--headless \
 		--noplugin \

@@ -1,7 +1,7 @@
 local a = require("plenary.async.tests")
 local uv = vim.uv
 
-local server_cmd = "nobl9-language-server"
+local server_cmd = "./bin/nobl9-language-server"
 local test_files_dir = "tests/lua/inputs"
 
 local M = {}
