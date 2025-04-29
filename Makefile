@@ -79,89 +79,120 @@ nvim-open: install/binary
 ## Run all checks.
 check: check/vet check/lint check/gosec check/spell check/trailing check/markdown check/format check/generate check/vulns
 
+## Run 'go vet' on the whole project.
 check/vet:
-	$(call _print_step,Running go vet)
+	$(call __print_step,Running go vet)
 	go vet ./...
 
+## Run golangci-lint all-in-one linter with configuration defined inside .golangci.yml.
 check/lint:
-	$(call _print_step,Running golangci-lint)
+	$(call __print_step,Running golangci-lint)
 	$(call _ensure_installed,binary,golangci-lint)
 	$(BIN_DIR)/golangci-lint run
 
+## Check for security problems using gosec, which inspects the Go code by scanning the AST.
 check/gosec:
-	$(call _print_step,Running gosec)
+	$(call __print_step,Running gosec)
 	$(call _ensure_installed,binary,gosec)
 	$(BIN_DIR)/gosec -exclude-generated -quiet ./...
 
+## Check spelling, rules are defined in cspell.json.
 check/spell:
-	$(call _print_step,Verifying spelling)
+	$(call __print_step,Verifying spelling)
 	$(call _ensure_installed,yarn,cspell)
 	yarn --silent cspell --no-progress '**/**'
 
+## Check for trailing white spaces in any of the projects' files.
 check/trailing:
-	$(call _print_step,Looking for trailing whitespaces)
+	$(call __print_step,Looking for trailing whitespaces)
 	$(SCRIPTS_DIR)/check-trailing-whitespaces.bash
 
+## Check markdown files for potential issues with markdownlint.
 check/markdown:
-	$(call _print_step,Verifying Markdown files)
+	$(call __print_step,Verifying Markdown files)
 	$(call _ensure_installed,yarn,markdownlint)
 	yarn --silent markdownlint '**/*.md' \
 		--ignore '**/testdata/**' \
 		--ignore 'internal/hover/templates/*' \
 		--ignore node_modules
 
+## Check for potential vulnerabilities across all Go dependencies.
 check/vulns:
-	$(call _print_step,Running govulncheck)
+	$(call __print_step,Running govulncheck)
 	$(call _ensure_installed,binary,govulncheck)
 	$(BIN_DIR)/govulncheck ./...
 
+## Verify if the auto generated code has been committed.
 check/generate:
-	$(call _print_step,Checking if generated code matches the provided definitions)
+	$(call __print_step,Checking if generated code matches the provided definitions)
 	$(SCRIPTS_DIR)/check-generate.sh
 
+## Verify if the files are formatted.
+## You must first commit the changes, otherwise it won't detect the diffs.
 check/format:
-	$(call _print_step,Checking if files are formatted)
+	$(call __print_step,Checking if files are formatted)
 	$(SCRIPTS_DIR)/check-formatting.sh
 
+.PHONY: generate generate/code
+## Auto generate files.
+generate: generate/code
+
+## Generate Golang code.
 generate/code:
-	$(call _print_step,Generating Go code)
+	$(call __print_step,Generating Go code)
 	go generate ./...
 
+.PHONY: format format/go format/cspell
+## Format files.
+format: format/go format/cspell
+
+## Format Go files.
 format/go:
-	$(call _print_step,Formatting Go files)
+	$(call __print_step,Formatting Go files)
 	$(call _ensure_installed,binary,goimports)
 	gofmt -l -w -s .
 	$(BIN_DIR)/goimports -local=github.com/nobl9/nobl9-language-server -w .
 
+## Format cspell config file.
 format/cspell:
-	$(call _print_step,Formatting cspell.yaml configuration (words list))
+	$(call __print_step,Formatting cspell.yaml configuration \(words list\))
 	$(call _ensure_installed,yarn,yaml)
 	yarn --silent format-cspell-config
 
+.PHONY: install install/binary install/yarn install/golangci-lint install/gosec install/govulncheck install/goimports
+## Install all dev dependencies.
+install: install/binary install/yarn install/golangci-lint install/gosec install/govulncheck install/goimports
+
+## Install nobl9-language-server binary.
 install/binary:
-	$(call _print_step,Installing server binary)
+	$(call __print_step,Installing LSP binary)
 	go install -gcflags="all=-N -l" -ldflags="$(LDFLAGS)" ./cmd/nobl9-language-server/
 
+## Install JS dependencies with yarn.
 install/yarn:
-	$(call _print_step,Installing yarn dependencies)
+	$(call __print_step,Installing yarn dependencies)
 	yarn --silent install
 
+## Install golangci-lint (https://golangci-lint.run).
 install/golangci-lint:
-	$(call _print_step,Installing golangci-lint)
+	$(call __print_step,Installing golangci-lint)
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh |\
-		sh -s -- -b $(BIN_DIR) $(GOLANGCI_LINT_VERSION)
+ 		sh -s -- -b $(BIN_DIR) $(GOLANGCI_LINT_VERSION)
 
+## Install gosec (https://github.com/securego/gosec).
 install/gosec:
-	$(call _print_step,Installing gosec)
+	$(call __print_step,Installing gosec)
 	curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh |\
-		sh -s -- -b $(BIN_DIR) $(GOSEC_VERSION)
+ 		sh -s -- -b $(BIN_DIR) $(GOSEC_VERSION)
 
+## Install govulncheck (https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck).
 install/govulncheck:
-	$(call _print_step,Installing govulncheck)
+	$(call __print_step,Installing govulncheck)
 	$(call _install_go_binary,golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION))
 
+## Install goimports (https://pkg.go.dev/golang.org/x/tools/cmd/goimports).
 install/goimports:
-	$(call _print_step,Installing goimports)
+	$(call __print_step,Installing goimports)
 	$(call _install_go_binary,golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION))
 
 .PHONY: help

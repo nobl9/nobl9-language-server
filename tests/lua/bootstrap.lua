@@ -3,7 +3,7 @@ local function println(...)
 end
 
 --- Initialize the test environment.
---- Thie file will run once before attempting to run PlenaryBustedDirectory.
+--- The file will run once before attempting to run PlenaryBustedDirectory.
 vim.cmd([[set runtimepath=$VIMRUNTIME]]) -- reset, otherwise it contains all of $PATH
 println("Runtime path: " .. vim.inspect(vim.opt.runtimepath:get()))
 vim.opt.swapfile = false
