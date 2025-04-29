@@ -71,10 +71,14 @@ end
 
 configs.nobl9_language_server = {
   default_config = {
-    cmd = { "nobl9-language-server", "-logLevel=TRACE", "-logFilePath=this.log" },
+    cmd = {
+      "nobl9-language-server",
+      "-logFilePath=~/.local/state/nobl9-language-server/n9.log",
+      "-logLevel=TRACE",
+    },
     filetypes = { "yaml" },
     root_dir = function(fname)
-      return lsp.util.find_git_ancestor(fname)
+      return vim.fs.dirname(vim.fs.find(".git", { path = fname, upward = true })[1])
     end,
     settings = {},
   },

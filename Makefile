@@ -49,10 +49,22 @@ endef
 build:
 	go build -ldflags="$(LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME) ./cmd/nobl9-language-server/
 
-.PHONY: test
+.PHONY: test test/go test/neovim
 ## Run all unit tests.
-test:
+test: test/go test/neovim
+
+## Run Go unit tests.
+test/go:
 	go test -race -cover ./...
+
+## Run plenary unit tests in headless NeoVim instance.
+test/neovim:
+	nvim \
+		--headless \
+		--noplugin \
+		-i NONE \
+		-u tests/bootstrap.lua \
+		-c "PlenaryBustedDirectory tests/plenary { minimal_init = 'tests/minimal_init.lua', timeout = 50000 }"
 
 .PHONY: nvim-open
 ## Open Neovim with the LSP server.
