@@ -189,13 +189,13 @@ func (c *jsonRPCClient) ReadMessages(t *testing.T, n int) {
 }
 
 func getTestFileURI(filename string) string {
-	return "file://" + filepath.Join(testutils.FindModuleRoot(), "tests", "files", filename)
+	return "file://" + filepath.Join(testutils.FindModuleRoot(), "tests", "go", "inputs", filename)
 }
 
 func readTestFile(t *testing.T, filename string) string {
 	t.Helper()
 
-	path := filepath.Join(testutils.FindModuleRoot(), "tests", "files", filename)
+	path := filepath.Join(testutils.FindModuleRoot(), "tests", "go", "inputs", filename)
 	data, err := os.ReadFile(path)
 	require.NoError(t, err)
 	return string(data)

@@ -7,7 +7,7 @@ end
 vim.cmd([[set runtimepath=$VIMRUNTIME]]) -- reset, otherwise it contains all of $PATH
 println("Runtime path: " .. vim.inspect(vim.opt.runtimepath:get()))
 vim.opt.swapfile = false
-local site_dir = "./tests/.plenary-tests/all/site"
+local site_dir = "./tests/lua/.plenary-tests/all/site"
 vim.opt.packpath = { site_dir }
 
 local plugins = {
