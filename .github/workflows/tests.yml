@@ -13,9 +13,21 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+      - name: Install Neovim
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: false
       - name: Run unit tests
         run: make test
+        env:
+          NOBL9_LANGUAGE_SERVER_CLIENT_ID: ${{ vars.NOBL9_LANGUAGE_SERVER_CLIENT_ID }}
+          NOBL9_LANGUAGE_SERVER_CLIENT_SECRET: ${{ secrets.NOBL9_LANGUAGE_SERVER_CLIENT_SECRET }}
+      - name: Debug failure
+        if: failure()
+        run: |
+          cat ./plenary-test.log || true
+          cat /home/runner/.local/state/nvim/lsp.log || true

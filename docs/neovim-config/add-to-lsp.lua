@@ -1,4 +1,3 @@
-local lsp = require("lspconfig")
 local configs = require("lspconfig.configs")
 
 configs.nobl9_language_server = {

@@ -248,7 +248,7 @@ func TestLSP(t *testing.T) {
 				ID: 8,
 				Error: &jsonrpc2.Error{
 					Message: fmt.Sprintf(
-						"file not found: file://%s/tests/files/valid-project.yaml",
+						"file not found: file://%s/tests/go/inputs/valid-project.yaml",
 						testutils.FindModuleRoot()),
 				},
 			},
