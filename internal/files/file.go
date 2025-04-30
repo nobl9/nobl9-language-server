@@ -46,6 +46,7 @@ func (f *File) Update(ctx context.Context, version int, content string) {
 	}
 	f.Version = version
 	f.Content = content
+	f.Skip = false
 
 	f.SimpleAST, f.Err = ParseSimpleObjectFile(content)
 	if f.Err != nil {
