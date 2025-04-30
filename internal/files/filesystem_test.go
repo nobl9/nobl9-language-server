@@ -425,6 +425,22 @@ func TestFS_UpdateFile(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:            "previously skipped file is no longer skipped",
+			uri:             "file://file1",
+			content:         "apiVersion: n9/",
+			expectedContent: "apiVersion: n9/",
+			version:         2,
+			skipped:         false,
+			setup: func(fs *FS) {
+				fs.files["file://file1"] = &File{
+					URI:     "file://file1",
+					Version: 1,
+					Content: "apiVersion: n",
+					Skip:    true,
+				}
+			},
+		},
 	}
 
 	for _, tc := range tests {
