@@ -875,18 +875,19 @@ func yamlErrorToDiagnostic(yamlError yaml.Error, fileURI string) messages.Diagno
 	switch v := yamlError.(type) {
 	case *yaml.SyntaxError:
 		matches := duplicateYAMLKeyRegexp.FindStringSubmatch(v.GetMessage())
-		if len(matches) == 3 {
-			prevLine, _ := strconv.Atoi(matches[1])
-			prevCol, _ := strconv.Atoi(matches[2])
-			diag.RelatedInformation = []messages.DiagnosticRelatedInformation{
-				{
-					Location: messages.Location{
-						URI:   fileURI,
-						Range: newPointRange(prevLine, prevCol),
-					},
-					Message: "duplicate key",
+		if len(matches) != 3 {
+			break
+		}
+		prevLine, _ := strconv.Atoi(matches[1])
+		prevCol, _ := strconv.Atoi(matches[2])
+		diag.RelatedInformation = []messages.DiagnosticRelatedInformation{
+			{
+				Location: messages.Location{
+					URI:   fileURI,
+					Range: newPointRange(prevLine, prevCol),
 				},
-			}
+				Message: "duplicate key",
+			},
 		}
 	}
 	return diag
