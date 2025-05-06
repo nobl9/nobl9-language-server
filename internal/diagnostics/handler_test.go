@@ -651,6 +651,62 @@ func TestHandler_Handle(t *testing.T) {
 				},
 			},
 		},
+		"unknown field in annotation": {
+			item: messages.TextDocumentItem{
+				URI:     getTestFileURI("unknown-field.yaml").URI,
+				Version: 1,
+				Text:    "foo", // Text is not actually relevant.
+			},
+			expected: &messages.PublishDiagnosticsParams{
+				URI:     getTestFileURI("unknown-field.yaml").URI,
+				Version: 1,
+				Diagnostics: []messages.Diagnostic{
+					{
+						Message:  `unknown field "sl"`,
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(goYamlSource),
+						Range: messages.Range{
+							Start: messages.Position{Line: 6, Character: 3},
+							End:   messages.Position{Line: 6, Character: 3},
+						},
+					},
+				},
+			},
+		},
+		"duplicate field in service": {
+			item: messages.TextDocumentItem{
+				URI:     getTestFileURI("duplicate-field.yaml").URI,
+				Version: 1,
+				Text:    "foo", // Text is not actually relevant.
+			},
+			expected: &messages.PublishDiagnosticsParams{
+				URI:     getTestFileURI("duplicate-field.yaml").URI,
+				Version: 1,
+				Diagnostics: []messages.Diagnostic{
+					{
+						Message:  `mapping key "description" already defined at [7:3]`,
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(goYamlSource),
+						Range: messages.Range{
+							Start: messages.Position{Line: 7, Character: 3},
+							End:   messages.Position{Line: 7, Character: 3},
+						},
+						RelatedInformation: []messages.DiagnosticRelatedInformation{
+							{
+								Location: messages.Location{
+									URI: getTestFileURI("duplicate-field.yaml").URI,
+									Range: messages.Range{
+										Start: messages.Position{Line: 6, Character: 3},
+										End:   messages.Position{Line: 6, Character: 3},
+									},
+								},
+								Message: "duplicate key",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, test := range tests {
