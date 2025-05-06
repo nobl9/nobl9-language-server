@@ -44,7 +44,7 @@ Refer to the [extension documentation](https://github.com/nobl9/nobl9-vscode/) f
 
 ### Intellij Platform
 
-> [!WARNING]  
+> [!WARNING]
 > Work in progress. The plugin is not yet available!
 
 Refer to the [plugin documentation](https://github.com/nobl9/nobl9-intellij-platform-plugin) for more details.
