@@ -1,0 +1,10 @@
+apiVersion: n9/v1alpha
+kind: Annotation
+metadata:
+  name: annotation-test-1
+  project: default
+spec:
+  sl: streaming-other-slo
+  description: test annotation
+  startTime: 2006-01-02T17:10:05Z
+  endTime: 2006-01-02T17:10:05Z

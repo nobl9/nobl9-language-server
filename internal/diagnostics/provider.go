@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"slices"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -59,7 +61,7 @@ type Provider struct {
 
 func (d Provider) DiagnoseFile(ctx context.Context, file *files.File) []messages.Diagnostic {
 	if file.Err != nil {
-		return astErrorToDiagnostics(file.Err, 0)
+		return astErrorToDiagnostics(file.Err, 0, file.URI)
 	}
 
 	numDiags := atomic.Int64{}
@@ -70,7 +72,7 @@ func (d Provider) DiagnoseFile(ctx context.Context, file *files.File) []messages
 		recovery.SafeGo(func() {
 			defer wg.Done()
 			if object.Err != nil {
-				ch <- astErrorToDiagnostics(object.Err, object.Node.StartLine)
+				ch <- astErrorToDiagnostics(object.Err, object.Node.StartLine, file.URI)
 				return
 			}
 			diags := d.diagnoseObject(ctx, object, file.SimpleAST[i])
@@ -837,21 +839,12 @@ func objectValidationErrorToDiagnostics(
 	return diagnostics
 }
 
-func astErrorToDiagnostics(err error, line int) []messages.Diagnostic {
+func astErrorToDiagnostics(err error, line int, fileURI string) []messages.Diagnostic {
 	diagnostics := make([]messages.Diagnostic, 0)
-	if tErr := asYAMLTokenScopedError(err); tErr != nil {
-		diagnostics = append(diagnostics, messages.Diagnostic{
-			Range: newPointRange(
-				// Shift the line number to the actual line in the file as the SDK
-				// operates on the single node's context.
-				// Subtract one to convert StartLine from 1-based to 0-based indexing.
-				tErr.Token.Position.Line,
-				tErr.Token.Position.Column,
-			),
-			Severity: messages.DiagnosticSeverityError,
-			Source:   ptr(goYamlSource),
-			Message:  tErr.Msg,
-		})
+
+	var yamlError yaml.Error
+	if errors.As(err, &yamlError) {
+		diagnostics = append(diagnostics, yamlErrorToDiagnostic(yamlError, fileURI))
 	} else {
 		diagnostics = append(diagnostics, messages.Diagnostic{
 			Range:    newPointRange(line, 0),
@@ -861,6 +854,43 @@ func astErrorToDiagnostics(err error, line int) []messages.Diagnostic {
 		})
 	}
 	return diagnostics
+}
+
+var duplicateYAMLKeyRegexp = regexp.MustCompile(`already defined at \[(\d+):(\d+)]`)
+
+func yamlErrorToDiagnostic(yamlError yaml.Error, fileURI string) messages.Diagnostic {
+	token := yamlError.GetToken()
+	diag := messages.Diagnostic{
+		Range: newPointRange(
+			// Shift the line number to the actual line in the file as the SDK
+			// operates on the single node's context.
+			// Subtract one to convert StartLine from 1-based to 0-based indexing.
+			token.Position.Line,
+			token.Position.Column,
+		),
+		Severity: messages.DiagnosticSeverityError,
+		Source:   ptr(goYamlSource),
+		Message:  yamlError.GetMessage(),
+	}
+	switch v := yamlError.(type) {
+	case *yaml.SyntaxError:
+		matches := duplicateYAMLKeyRegexp.FindStringSubmatch(v.GetMessage())
+		if len(matches) != 3 {
+			break
+		}
+		prevLine, _ := strconv.Atoi(matches[1])
+		prevCol, _ := strconv.Atoi(matches[2])
+		diag.RelatedInformation = []messages.DiagnosticRelatedInformation{
+			{
+				Location: messages.Location{
+					URI:   fileURI,
+					Range: newPointRange(prevLine, prevCol),
+				},
+				Message: "duplicate key",
+			},
+		}
+	}
+	return diag
 }
 
 func getRangeForNodePath(ctx context.Context, node *yamlast.Node, path string) messages.Range {
