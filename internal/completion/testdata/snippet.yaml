@@ -12,3 +12,5 @@ foo: bar
 ---
 
 foo: bar
+---
+- pr

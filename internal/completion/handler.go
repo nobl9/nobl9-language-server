@@ -70,7 +70,9 @@ func (h *Handler) Handle(ctx context.Context, params messages.CompletionParams) 
 		switch provider.getType() {
 		case keysCompletionType:
 			start, end := line.GetKeyPos()
+			isEmptyList := !line.IsType(yamlastsimple.LineTypeMapping) && line.IsType(yamlastsimple.LineTypeList)
 			if !line.IsType(yamlastsimple.LineTypeEmpty) &&
+				!isEmptyList &&
 				(params.Position.Character < start || params.Position.Character > end) {
 				continue
 			}

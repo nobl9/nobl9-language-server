@@ -1,0 +1,15 @@
+apiVersion: n9/v1alpha
+kind: SLO
+metadata:
+  displayName: prometheus-calendar-timeslices-threshold
+  name: prometheus-calendar-timeslices-threshold
+  project: prometheus
+spec:
+  budgetingMethod: Timeslices
+  description: ""
+  indicator:
+    metricSource:
+      name: prometheus
+  service: prometheus-service
+  timeWindows:
+    - cal
