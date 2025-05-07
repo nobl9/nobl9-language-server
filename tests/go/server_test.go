@@ -472,7 +472,7 @@ func TestLSP(t *testing.T) {
 								Severity: messages.DiagnosticSeverityError,
 								Source:   ptr("go-yaml"),
 								Range: messages.Range{
-									Start: messages.Position{Line: 1, Character: 1},
+									Start: messages.Position{Line: 1, Character: 0},
 									End:   messages.Position{Line: 1, Character: 1},
 								},
 							},

@@ -644,7 +644,7 @@ func TestHandler_Handle(t *testing.T) {
 						Severity: messages.DiagnosticSeverityError,
 						Source:   ptr(goYamlSource),
 						Range: messages.Range{
-							Start: messages.Position{Line: 1, Character: 1},
+							Start: messages.Position{Line: 1, Character: 0},
 							End:   messages.Position{Line: 1, Character: 1},
 						},
 					},
@@ -666,8 +666,17 @@ func TestHandler_Handle(t *testing.T) {
 						Severity: messages.DiagnosticSeverityError,
 						Source:   ptr(goYamlSource),
 						Range: messages.Range{
-							Start: messages.Position{Line: 6, Character: 3},
-							End:   messages.Position{Line: 6, Character: 3},
+							Start: messages.Position{Line: 6, Character: 2},
+							End:   messages.Position{Line: 6, Character: 4},
+						},
+					},
+					{
+						Message:  `unknown field "project"`,
+						Severity: messages.DiagnosticSeverityError,
+						Source:   ptr(goYamlSource),
+						Range: messages.Range{
+							Start: messages.Position{Line: 15, Character: 2},
+							End:   messages.Position{Line: 15, Character: 9},
 						},
 					},
 				},
@@ -688,8 +697,8 @@ func TestHandler_Handle(t *testing.T) {
 						Severity: messages.DiagnosticSeverityError,
 						Source:   ptr(goYamlSource),
 						Range: messages.Range{
-							Start: messages.Position{Line: 7, Character: 3},
-							End:   messages.Position{Line: 7, Character: 3},
+							Start: messages.Position{Line: 7, Character: 2},
+							End:   messages.Position{Line: 7, Character: 13},
 						},
 						RelatedInformation: []messages.DiagnosticRelatedInformation{
 							{
