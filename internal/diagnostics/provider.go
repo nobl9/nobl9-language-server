@@ -860,13 +860,16 @@ var duplicateYAMLKeyRegexp = regexp.MustCompile(`already defined at \[(\d+):(\d+
 
 func yamlErrorToDiagnostic(yamlError yaml.Error, fileURI string) messages.Diagnostic {
 	token := yamlError.GetToken()
+	start := token.Position.Column - 1
+	end := start + len(token.Value)
 	diag := messages.Diagnostic{
-		Range: newPointRange(
+		Range: newLineRange(
 			// Shift the line number to the actual line in the file as the SDK
 			// operates on the single node's context.
 			// Subtract one to convert StartLine from 1-based to 0-based indexing.
 			token.Position.Line,
-			token.Position.Column,
+			start,
+			end,
 		),
 		Severity: messages.DiagnosticSeverityError,
 		Source:   ptr(goYamlSource),

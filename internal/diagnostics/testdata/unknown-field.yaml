@@ -8,3 +8,11 @@ spec:
   description: test annotation
   startTime: 2006-01-02T17:10:05Z
   endTime: 2006-01-02T17:10:05Z
+---
+apiVersion: n9/v1alpha
+kind: Project
+metadata:
+  name: default
+  project: default
+spec:
+  description: test project
