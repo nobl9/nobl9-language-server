@@ -402,6 +402,29 @@ name: my-service
 				},
 			},
 		},
+		"array elements with comments": {
+			in: `# gcs
+- apiVersion: n9/v1alpha
+  kind: DataExport
+# s3
+- apiVersion: n9/v1alpha
+  kind: DataExport`,
+			out: File{
+				Docs: []*Document{
+					{
+						Offset: 0,
+						Lines: []*Line{
+							{Path: "", indent: 0, Type: LineTypeComment},
+							{Path: "$[0].apiVersion", GeneralizedPath: "$.apiVersion", indent: 2, Type: LineTypeList | LineTypeMapping},
+							{Path: "$[0].kind", GeneralizedPath: "$.kind", indent: 2, Type: LineTypeMapping},
+							{Path: "", indent: 0, Type: LineTypeComment},
+							{Path: "$[1].apiVersion", GeneralizedPath: "$.apiVersion", indent: 2, Type: LineTypeList | LineTypeMapping},
+							{Path: "$[1].kind", GeneralizedPath: "$.kind", indent: 2, Type: LineTypeMapping},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tests {

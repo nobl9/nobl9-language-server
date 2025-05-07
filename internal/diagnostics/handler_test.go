@@ -716,6 +716,18 @@ func TestHandler_Handle(t *testing.T) {
 				},
 			},
 		},
+		"data exports (no issues)": {
+			item: messages.TextDocumentItem{
+				URI:     getTestFileURI("data-exports.yaml").URI,
+				Version: 1,
+				Text:    "foo", // Text is not actually relevant.
+			},
+			expected: &messages.PublishDiagnosticsParams{
+				URI:         getTestFileURI("data-exports.yaml").URI,
+				Version:     1,
+				Diagnostics: []messages.Diagnostic{},
+			},
+		},
 	}
 
 	for name, test := range tests {

@@ -49,7 +49,7 @@ func ParseSimpleObjectFile(content string) (SimpleObjectFile, error) {
 		switch {
 		case len(doc.Lines) == 0:
 			continue
-		case strings.HasPrefix(doc.Lines[0].Path, "$["):
+		case docIsList(doc):
 			docs, err := splitListDocument(doc)
 			if err != nil {
 				return nil, err
@@ -66,6 +66,16 @@ func ParseSimpleObjectFile(content string) (SimpleObjectFile, error) {
 		}
 	}
 	return file, nil
+}
+
+func docIsList(doc *yamlastsimple.Document) bool {
+	for _, line := range doc.Lines {
+		if line.IsType(yamlastsimple.LineTypeList) &&
+			strings.HasPrefix(line.Path, "$[") {
+			return true
+		}
+	}
+	return false
 }
 
 func parseSimpleObjectNode(doc *yamlastsimple.Document) *SimpleObjectNode {
