@@ -406,6 +406,43 @@ apiVersion: n9/v1alpha
 				},
 			},
 		},
+		{
+			name: "list of objects with comments",
+			content: `# gcs
+- apiVersion: n9/v1alpha
+  kind: DataExport
+# s3
+- apiVersion: n9/v1alpha
+  kind: DataExport`,
+			expectedAST: SimpleObjectFile{
+				{
+					Version:       manifest.VersionV1alpha,
+					Kind:          manifest.KindDataExport,
+					isListElement: true,
+					Doc: &yamlastsimple.Document{
+						Offset: 0,
+						Lines: []*yamlastsimple.Line{
+							{Path: ""},
+							{Path: "$[0].apiVersion"},
+							{Path: "$[0].kind"},
+							{Path: ""},
+						},
+					},
+				},
+				{
+					Version:       manifest.VersionV1alpha,
+					Kind:          manifest.KindDataExport,
+					isListElement: true,
+					Doc: &yamlastsimple.Document{
+						Offset: 4,
+						Lines: []*yamlastsimple.Line{
+							{Path: "$[1].apiVersion"},
+							{Path: "$[1].kind"},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range tests {

@@ -31,7 +31,11 @@ func LogPanic(ctx context.Context, recovered any) {
 	if recovered == nil {
 		return
 	}
-	slog.ErrorContext(ctx, "panic recovered", slog.Any("panic", recovered))
+	stackTrace := string(debug.Stack())
+	slog.ErrorContext(ctx, "panic recovered",
+		slog.Any("panic", recovered),
+		slog.String("stack", stackTrace))
+
 	notifyClient(ctx, conn, messages.ShowMessageMethod, messages.ShowMessageParams{
 		Type: messages.MessageTypeError,
 		Message: "Nobl9 LSP has encountered an internal error.\n" +
@@ -39,7 +43,7 @@ func LogPanic(ctx context.Context, recovered any) {
 	})
 	notifyClient(ctx, conn, messages.LogMessageMethod, messages.LogMessageParams{
 		Type:    messages.MessageTypeError,
-		Message: fmt.Sprintf("%v\nStack trace:\n%s", recovered, string(debug.Stack())),
+		Message: fmt.Sprintf("%v\nStack trace:\n%s", recovered, stackTrace),
 	})
 }
 

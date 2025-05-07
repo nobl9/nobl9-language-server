@@ -80,10 +80,6 @@ func (l *Level) UnmarshalText(data []byte) error {
 	return l.Level.UnmarshalText(data)
 }
 
-func DefaultLevel() Level {
-	return Level{Level: slog.LevelInfo}
-}
-
 type Config struct {
 	LogFile  string `json:"logFile"`
 	LogLevel Level  `json:"logLevel"`
