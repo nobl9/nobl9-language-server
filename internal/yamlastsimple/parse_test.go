@@ -516,6 +516,10 @@ func TestLine_HasMapValue(t *testing.T) {
 		{"metadata:\n  name: this", 1, true},
 		{"metadata:\n  name:", 1, false},
 		{"metadata:\n  name:1", 1, false},
+		{"- metadata: name", 0, true},
+		{"- metadata:\n  - name: foo", 1, true},
+		{"- metadata: ", 0, false},
+		{"- metadata:\n  - name:", 1, false},
 	}
 	for _, tc := range tests {
 		file := ParseFile(tc.in)
@@ -570,6 +574,8 @@ func TestLine_GetKeyPos(t *testing.T) {
 		{"metadata:\n  name: this", 1, 2, 6},
 		{"metadata:\n  name:", 1, 2, 6},
 		{"metadata:\n#  name:", 1, 0, 0},
+		{"- metadata: name", 0, 2, 10},
+		{"- metadata:\n  - name: foo", 1, 4, 8},
 	}
 	for _, tc := range tests {
 		file := ParseFile(tc.in)
@@ -593,6 +599,8 @@ func TestLine_GetValuePos(t *testing.T) {
 		{"metadata:\n  name: this", 1, 8, 12},
 		{"metadata:\n  name:  this", 1, 8, 13},
 		{"metadata:\n  name:", 1, 0, 0},
+		{"- metadata: name", 0, 12, 16},
+		{"- metadata:\n  - name: foo", 1, 10, 13},
 	}
 	for _, tc := range tests {
 		file := ParseFile(tc.in)

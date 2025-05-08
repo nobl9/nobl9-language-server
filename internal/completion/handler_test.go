@@ -150,6 +150,18 @@ func TestHandler_Handle(t *testing.T) {
 			},
 			expected: apiVersionCompletionItems,
 		},
+		"complete apiVersion (array)": {
+			params: messages.CompletionParams{
+				TextDocumentPositionParams: messages.TextDocumentPositionParams{
+					TextDocument: getTestFileURI("complete-apiversion-array.yaml"),
+					Position: messages.Position{
+						Line:      1,
+						Character: 14,
+					},
+				},
+			},
+			expected: apiVersionCompletionItems,
+		},
 		"complete kind": {
 			params: messages.CompletionParams{
 				TextDocumentPositionParams: messages.TextDocumentPositionParams{
