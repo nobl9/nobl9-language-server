@@ -45,23 +45,20 @@ To learn more about Nobl9 configuration schema, visit: https://docs.nobl9.com/ya
 		Action: func(context.Context, *cli.Command) error { return mainFunc(cmd.config) },
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    "logLevel",
-				Usage:   "Log messages at the provided level",
-				Value:   "INFO",
-				Sources: cli.EnvVars(envPrefix + "LOG_LEVEL"),
-				Action:  func(_ context.Context, _ *cli.Command, s string) error { return cmd.parseLogLevelFlag(s) },
+				Name:   "logLevel",
+				Usage:  "Log messages at the provided level",
+				Value:  "INFO",
+				Action: parseStringWithEnvDefault("LOG_LEVEL", cmd.parseLogLevel),
 			},
 			&cli.StringFlag{
-				Name:    "logFilePath",
-				Usage:   "Write logged messages to the provided file, by default logs are written to stderr",
-				Sources: cli.EnvVars(envPrefix + "LOG_FILE_PATH"),
-				Action:  func(_ context.Context, _ *cli.Command, s string) error { return cmd.parseLogFilePath(s) },
+				Name:   "logFilePath",
+				Usage:  "Write logged messages to the provided file, by default logs are written to stderr",
+				Action: parseStringWithEnvDefault("LOG_FILE_PATH", cmd.parseLogFilePath),
 			},
 			&cli.StringFlag{
-				Name:    "filePatterns",
-				Usage:   "Comma separated list of file patterns to process",
-				Sources: cli.EnvVars(envPrefix + "FILE_PATTERNS"),
-				Action:  func(_ context.Context, _ *cli.Command, s string) error { return cmd.parseFilePatternsFlag(s) },
+				Name:   "filePatterns",
+				Usage:  "Comma separated list of file patterns to process",
+				Action: parseStringWithEnvDefault("FILE_PATTERNS", cmd.parseFilePatterns),
 			},
 		},
 		Commands: []*cli.Command{
@@ -83,7 +80,19 @@ func (c *Command) Run(ctx context.Context) error {
 	return c.app.Run(ctx, os.Args)
 }
 
-func (c *Command) parseLogLevelFlag(s string) error {
+func parseStringWithEnvDefault(
+	envSuffix string,
+	parseFunc func(string) error,
+) func(context.Context, *cli.Command, string) error {
+	return func(_ context.Context, _ *cli.Command, s string) error {
+		if v, ok := os.LookupEnv(envPrefix + envSuffix); ok {
+			s = v
+		}
+		return parseFunc(s)
+	}
+}
+
+func (c *Command) parseLogLevel(s string) error {
 	level := new(logging.Level)
 	if err := level.UnmarshalText([]byte(s)); err != nil {
 		return err
@@ -92,7 +101,7 @@ func (c *Command) parseLogLevelFlag(s string) error {
 	return nil
 }
 
-func (c *Command) parseFilePatternsFlag(s string) error {
+func (c *Command) parseFilePatterns(s string) error {
 	if strings.TrimSpace(s) == "" {
 		return nil
 	}
