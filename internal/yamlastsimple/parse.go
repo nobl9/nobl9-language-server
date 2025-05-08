@@ -92,9 +92,6 @@ func (l *Line) GetValuePos() (start, end int) {
 	if !l.HasMapValue() {
 		return 0, 0
 	}
-	//if l.IsType(LineTypeList) {
-	//	return l.indent + l.valueColonIdx, l.indent + len(l.value)
-	//}
 	return l.indent + l.valueColonIdx + 2, l.indent + len(l.value)
 }
 
