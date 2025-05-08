@@ -73,7 +73,9 @@ func (p KeysCompletionProvider) Complete(
 		isRootSpecOrMetadata := path == "$" && (proposedPath == "spec" || proposedPath == "metadata")
 		switch {
 		case line.GetColonIndex() != -1:
-			// If the line has a colon, we need to insert the text after it.
+			// If the line has a colon, the proposed property name is inserted as-is
+			// without appending an extra colon. This ensures that the insertion
+			// respects the existing structure of the YAML document.
 			insertText = proposedPath
 		case (prop == nil || len(prop.ChildrenPaths) == 0) && !isRootSpecOrMetadata:
 			// Proposed path is a simple value node.
