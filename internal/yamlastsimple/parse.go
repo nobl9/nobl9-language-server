@@ -190,7 +190,9 @@ func parseDocumentLines(lines []string) []*Line {
 			}
 			if strings.HasPrefix(line, "- ") {
 				parsedLine.value = line[2:]
-				parsedLine.valueColonIdx -= 2
+				if parsedLine.valueColonIdx != -1 {
+					parsedLine.valueColonIdx -= 2
+				}
 			}
 		default:
 			if !isMappingNode(line) {
