@@ -74,6 +74,12 @@ func (l *Line) HasMapValue() bool {
 	return l.IsType(LineTypeMapping) && l.valueColonIdx != -1 && l.valueColonIdx+2 < len(l.value)
 }
 
+// GetColonIndex returns the index of the colon in the line.
+// If colon is not present, it returns -1.
+func (l *Line) GetColonIndex() int {
+	return l.valueColonIdx
+}
+
 // GetKeyPos returns the start and end position of the key on the given line.
 // End position is exclusive, while start is inclusive.
 func (l *Line) GetKeyPos() (start, end int) {
@@ -184,7 +190,7 @@ func parseDocumentLines(lines []string) []*Line {
 		case line[0] == '-':
 			parsedLine.indent += 2
 			parsedLine.Type = LineTypeList
-			if parsedLine.valueColonIdx = strings.Index(line, ":"); parsedLine.valueColonIdx != -1 {
+			if parsedLine.valueColonIdx = getColonIndex(line); parsedLine.valueColonIdx != -1 {
 				parsedLine.Path = strings.TrimSpace(line[1:parsedLine.valueColonIdx])
 				parsedLine.addType(LineTypeMapping)
 			}
@@ -199,7 +205,7 @@ func parseDocumentLines(lines []string) []*Line {
 				parsedLine.Type = LineTypeUndefined
 				break
 			}
-			if parsedLine.valueColonIdx = strings.Index(line, ":"); parsedLine.valueColonIdx != -1 {
+			if parsedLine.valueColonIdx = getColonIndex(line); parsedLine.valueColonIdx != -1 {
 				parsedLine.Path = strings.TrimSpace(line[:parsedLine.valueColonIdx])
 				parsedLine.Type = LineTypeMapping
 			}
@@ -318,6 +324,40 @@ func getIndentLevel(s string) int {
 		ctr++
 	}
 	return ctr
+}
+
+// getColonIndex returns the index of the colon that separates a key from its value in a YAML mapping.
+// It handles quoted keys that may contain colons.
+func getColonIndex(s string) int {
+	keyStarted := false
+	inSingleQuotes := false
+	inDoubleQuotes := false
+
+	for i, r := range s {
+		if i == 0 && r == '-' {
+			continue
+		}
+		isSpace := unicode.IsSpace(r)
+		switch {
+		case r == '"' && !inSingleQuotes:
+			inDoubleQuotes = !inDoubleQuotes
+			if !keyStarted {
+				keyStarted = true
+			}
+		case r == '\'' && !inDoubleQuotes:
+			inSingleQuotes = !inSingleQuotes
+			if !keyStarted {
+				keyStarted = true
+			}
+		case keyStarted && isSpace && !inSingleQuotes && !inDoubleQuotes:
+			return -1 // Space after key without a colon means it's not a mapping
+		case !keyStarted && !isSpace:
+			keyStarted = true
+		case r == ':' && !inSingleQuotes && !inDoubleQuotes:
+			return i
+		}
+	}
+	return -1
 }
 
 // generalizePath generalizes the root path of the YAML document by:

@@ -425,6 +425,42 @@ name: my-service
 				},
 			},
 		},
+		"simple list element": {
+			in: `- metadata`,
+			out: File{
+				Docs: []*Document{
+					{
+						Lines: []*Line{
+							{Path: "$[0]", GeneralizedPath: "$", indent: 2, Type: LineTypeList},
+						},
+					},
+				},
+			},
+		},
+		"array doc with colon in string": {
+			in: `- metadata "foo: bar"`,
+			out: File{
+				Docs: []*Document{
+					{
+						Lines: []*Line{
+							{Path: "$[0]", GeneralizedPath: "$", indent: 2, Type: LineTypeList},
+						},
+					},
+				},
+			},
+		},
+		"array doc with quoted colon in key": {
+			in: `- "metadata: bar": foo`,
+			out: File{
+				Docs: []*Document{
+					{
+						Lines: []*Line{
+							{Path: `$[0]."metadata: bar"`, GeneralizedPath: `$."metadata: bar"`, indent: 2, Type: LineTypeList | LineTypeMapping},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tests {
@@ -522,8 +558,10 @@ func TestLine_HasMapValue(t *testing.T) {
 		{"- metadata:\n  - name:", 1, false},
 	}
 	for _, tc := range tests {
-		file := ParseFile(tc.in)
-		assert.Equal(t, tc.expected, file.Docs[0].Lines[tc.line].HasMapValue())
+		t.Run(tc.in, func(t *testing.T) {
+			file := ParseFile(tc.in)
+			assert.Equal(t, tc.expected, file.Docs[0].Lines[tc.line].HasMapValue())
+		})
 	}
 }
 
@@ -631,6 +669,53 @@ func Test_generalizePath(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.Input, func(t *testing.T) {
 			assert.Equal(t, test.Expected, generalizePath(test.Input))
+		})
+	}
+}
+
+func Test_getColonIndex(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected int
+	}{
+		// Simple cases
+		{name: "simple key", input: "key: value", expected: 3},
+		{name: "key with space", input: "key : value", expected: -1},
+		{name: "no colon", input: "key value", expected: -1},
+		{name: "empty string", input: "", expected: -1},
+		{name: "colon at end", input: "key:", expected: 3},
+
+		// List items
+		{name: "list item", input: "- key: value", expected: 5},
+		{name: "list item no colon", input: "- key value", expected: -1},
+
+		// Quoted keys
+		{name: "double quoted key", input: `"key": value`, expected: 5},
+		{name: "single quoted key", input: `'key': value`, expected: 5},
+
+		// Quoted keys with colons inside
+		{name: "double quoted key with colon", input: `"key:with:colon": value`, expected: 16},
+		{name: "single quoted key with colon", input: `'key:with:colon': value`, expected: 16},
+		{name: "mixed quotes in double quotes", input: `"key:'with:colon'": value`, expected: 18},
+		{name: "mixed quotes in single quotes", input: `'key:"with:colon"': value`, expected: 18},
+
+		// Nested quoted strings
+		{name: "nested double quotes", input: `"outer "inner" outer": value`, expected: 21},
+		{name: "nested single quotes", input: `'outer 'inner' outer': value`, expected: 21},
+
+		// Edge cases
+		{name: "unclosed double quotes", input: `"key:with:colon: value`, expected: -1},
+		{name: "unclosed single quotes", input: `'key:with:colon: value`, expected: -1},
+		{name: "escaped quotes not special", input: `key\"with\"colon: value`, expected: 16},
+		{name: "comment after key", input: "key # comment: not value", expected: -1},
+		{name: "space after key", input: "key value: not value", expected: -1},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := getColonIndex(tc.input)
+			assert.Equal(t, tc.expected, result, "Input: %q", tc.input)
 		})
 	}
 }

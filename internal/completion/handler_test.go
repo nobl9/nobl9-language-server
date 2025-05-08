@@ -62,7 +62,7 @@ func TestHandler_Handle(t *testing.T) {
 					},
 				},
 			},
-			expected: getRootPathCompletionItems(0),
+			expected: removeColonFromItems(getRootPathCompletionItems(0)),
 		},
 		"agent - complete metadata": {
 			params: messages.CompletionParams{
@@ -74,7 +74,7 @@ func TestHandler_Handle(t *testing.T) {
 					},
 				},
 			},
-			expected: metadataPathCompletionItems,
+			expected: removeColonFromItems(metadataPathCompletionItems),
 		},
 		"agent - do not complete metadata if cursor is on value": {
 			params: messages.CompletionParams{
@@ -138,7 +138,7 @@ func TestHandler_Handle(t *testing.T) {
 			expected:       getRootPathCompletionItems(0),
 			ignoreSnippets: true,
 		},
-		"complete apiVersion": {
+		"complete apiVersion - value": {
 			params: messages.CompletionParams{
 				TextDocumentPositionParams: messages.TextDocumentPositionParams{
 					TextDocument: getTestFileURI("complete-apiversion.yaml"),
@@ -150,7 +150,7 @@ func TestHandler_Handle(t *testing.T) {
 			},
 			expected: apiVersionCompletionItems,
 		},
-		"complete apiVersion (array)": {
+		"complete apiVersion - array value": {
 			params: messages.CompletionParams{
 				TextDocumentPositionParams: messages.TextDocumentPositionParams{
 					TextDocument: getTestFileURI("complete-apiversion-array.yaml"),
@@ -162,7 +162,19 @@ func TestHandler_Handle(t *testing.T) {
 			},
 			expected: apiVersionCompletionItems,
 		},
-		"complete kind": {
+		"complete apiVersion - property name": {
+			params: messages.CompletionParams{
+				TextDocumentPositionParams: messages.TextDocumentPositionParams{
+					TextDocument: getTestFileURI("complete-apiversion.yaml"),
+					Position: messages.Position{
+						Line:      1,
+						Character: 2,
+					},
+				},
+			},
+			expected: removeColonFromItems(getRootPathCompletionItems(0)),
+		},
+		"complete kind - value": {
 			params: messages.CompletionParams{
 				TextDocumentPositionParams: messages.TextDocumentPositionParams{
 					TextDocument: getTestFileURI("complete-kind.yaml"),
@@ -622,6 +634,15 @@ func getRootPathCompletionItems(indent int) []messages.CompletionItem {
 			InsertTextFormat: messages.PlainTextTextFormat,
 		},
 	}
+}
+
+func removeColonFromItems(items []messages.CompletionItem) []messages.CompletionItem {
+	copiedItems := make([]messages.CompletionItem, len(items))
+	copy(copiedItems, items)
+	for i := range copiedItems {
+		copiedItems[i].InsertText = copiedItems[i].Label
+	}
+	return copiedItems
 }
 
 var (

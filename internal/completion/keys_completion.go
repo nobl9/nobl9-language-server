@@ -31,7 +31,7 @@ func (p KeysCompletionProvider) getType() completionProviderType {
 
 func (p KeysCompletionProvider) Complete(
 	_ context.Context,
-	_ messages.CompletionParams,
+	params messages.CompletionParams,
 	_ files.SimpleObjectFile,
 	node *files.SimpleObjectNode,
 	line *yamlastsimple.Line,
@@ -72,6 +72,11 @@ func (p KeysCompletionProvider) Complete(
 		var insertText string
 		isRootSpecOrMetadata := path == "$" && (proposedPath == "spec" || proposedPath == "metadata")
 		switch {
+		case line.GetColonIndex() != -1:
+			// If the line has a colon, the proposed property name is inserted as-is
+			// without appending an extra colon. This ensures that the insertion
+			// respects the existing structure of the YAML document.
+			insertText = proposedPath
 		case (prop == nil || len(prop.ChildrenPaths) == 0) && !isRootSpecOrMetadata:
 			// Proposed path is a simple value node.
 			insertText = proposedPath + ": "
@@ -83,6 +88,7 @@ func (p KeysCompletionProvider) Complete(
 			// tabstop character or use workspace/configuration or expose LS config option.
 			insertText = proposedPath + ":\n" + strings.Repeat(" ", line.GetIndent()+2)
 		}
+
 		items = append(items, messages.CompletionItem{
 			Label:            proposedPath,
 			Kind:             messages.PropertyCompletion,
