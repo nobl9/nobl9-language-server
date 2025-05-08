@@ -188,6 +188,12 @@ func parseDocumentLines(lines []string) []*Line {
 				parsedLine.Path = strings.TrimSpace(line[1:parsedLine.valueColonIdx])
 				parsedLine.addType(LineTypeMapping)
 			}
+			if strings.HasPrefix(line, "- ") {
+				parsedLine.value = line[2:]
+				if parsedLine.valueColonIdx != -1 {
+					parsedLine.valueColonIdx -= 2
+				}
+			}
 		default:
 			if !isMappingNode(line) {
 				parsedLine.Type = LineTypeUndefined

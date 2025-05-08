@@ -150,6 +150,18 @@ func TestHandler_Handle(t *testing.T) {
 			},
 			expected: apiVersionCompletionItems,
 		},
+		"complete apiVersion (array)": {
+			params: messages.CompletionParams{
+				TextDocumentPositionParams: messages.TextDocumentPositionParams{
+					TextDocument: getTestFileURI("complete-apiversion-array.yaml"),
+					Position: messages.Position{
+						Line:      1,
+						Character: 14,
+					},
+				},
+			},
+			expected: apiVersionCompletionItems,
+		},
 		"complete kind": {
 			params: messages.CompletionParams{
 				TextDocumentPositionParams: messages.TextDocumentPositionParams{
@@ -187,6 +199,49 @@ func TestHandler_Handle(t *testing.T) {
 			expected: []messages.CompletionItem{
 				{Label: "Timeslices", Kind: messages.ValueCompletion},
 				{Label: "Occurrences", Kind: messages.ValueCompletion},
+			},
+		},
+		"complete time window": {
+			params: messages.CompletionParams{
+				TextDocumentPositionParams: messages.TextDocumentPositionParams{
+					TextDocument: getTestFileURI("complete-time-window.yaml"),
+					Position: messages.Position{
+						Line:      14,
+						Character: 9,
+					},
+				},
+			},
+			expected: []messages.CompletionItem{
+				{
+					Label:            "unit",
+					InsertText:       "unit: ",
+					Kind:             messages.PropertyCompletion,
+					InsertTextFormat: messages.PlainTextTextFormat,
+				},
+				{
+					Label:            "count",
+					InsertText:       "count: ",
+					Kind:             messages.PropertyCompletion,
+					InsertTextFormat: messages.PlainTextTextFormat,
+				},
+				{
+					Label:            "isRolling",
+					InsertText:       "isRolling: ",
+					Kind:             messages.PropertyCompletion,
+					InsertTextFormat: messages.PlainTextTextFormat,
+				},
+				{
+					Label:            "calendar",
+					InsertText:       "calendar:\n        ",
+					Kind:             messages.PropertyCompletion,
+					InsertTextFormat: messages.PlainTextTextFormat,
+				},
+				{
+					Label:            "period",
+					InsertText:       "period:\n        ",
+					Kind:             messages.PropertyCompletion,
+					InsertTextFormat: messages.PlainTextTextFormat,
+				},
 			},
 		},
 		"document without predecessor": {
@@ -243,6 +298,29 @@ spec:
 					Position: messages.Position{
 						Line:      7,
 						Character: 0,
+					},
+				},
+			},
+			expected: getRootPathCompletionItems(2),
+			firstSnippetItem: &messages.CompletionItem{
+				Label: "project",
+				InsertText: `apiVersion: n9/v1alpha
+  kind: Project
+  metadata:
+    displayName: $1
+    name: $1
+  spec:
+    description: $2
+`,
+			},
+		},
+		"list of objects with indent at the cursor and initial characters": {
+			params: messages.CompletionParams{
+				TextDocumentPositionParams: messages.TextDocumentPositionParams{
+					TextDocument: getTestFileURI("snippet.yaml"),
+					Position: messages.Position{
+						Line:      15,
+						Character: 3,
 					},
 				},
 			},
