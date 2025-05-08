@@ -19,6 +19,38 @@ type Location struct {
 	Range Range  `json:"range"`
 }
 
+// NewPointRange returns [Range] with both start and end set to the same line and character.
+func NewPointRange(l, c int) Range {
+	return NewRange(l, c, l, c)
+}
+
+// NewLineRange returns [Range] with both start and end set to the same line.
+func NewLineRange(l, sc, ec int) Range {
+	return NewRange(l, sc, l, ec)
+}
+
+// NewRange returns a [Range] with the given start and end lines and characters.
+// Line numbers are 0-based in the LSP specification, but we operate on 1-based indexing,
+// so we need to subtract one.
+func NewRange(sl, sc, el, ec int) Range {
+	if sl != 0 {
+		sl--
+	}
+	if el != 0 {
+		el--
+	}
+	return Range{
+		Start: Position{
+			Line:      sl,
+			Character: sc,
+		},
+		End: Position{
+			Line:      el,
+			Character: ec,
+		},
+	}
+}
+
 type Range struct {
 	// Zero-based inclusive start position.
 	Start Position `json:"start"`

@@ -118,7 +118,7 @@ func (d Provider) validateObject(ctx context.Context, object *files.ObjectNode) 
 		}
 	}
 	return []messages.Diagnostic{{
-		Range:    newLineRange(object.Node.StartLine, 0, 0),
+		Range:    messages.NewLineRange(object.Node.StartLine, 0, 0),
 		Severity: messages.DiagnosticSeverityError,
 		Source:   ptr(config.ServerName),
 		Message:  err.Error(),
@@ -777,7 +777,7 @@ func (d Provider) checkDeprecated(object *files.SimpleObjectNode) []messages.Dia
 			}
 			start, end := line.GetKeyPos()
 			diagnostics = append(diagnostics, messages.Diagnostic{
-				Range:    newLineRange(object.Doc.Offset+i+1, start, end),
+				Range:    messages.NewLineRange(object.Doc.Offset+i+1, start, end),
 				Severity: messages.DiagnosticSeverityWarning,
 				Source:   ptr(config.ServerName),
 				Message:  "property is deprecated",
@@ -815,7 +815,7 @@ func objectValidationErrorToDiagnostics(
 					slog.Any("error", err))
 				continue
 			}
-			rng = newPointRange(node.StartLine, 0)
+			rng = messages.NewPointRange(node.StartLine, 0)
 		} else {
 			rng = getRangeFromNode(filteredNode)
 		}
@@ -847,7 +847,7 @@ func astErrorToDiagnostics(err error, line int, fileURI string) []messages.Diagn
 		diagnostics = append(diagnostics, yamlErrorToDiagnostic(yamlError, fileURI))
 	} else {
 		diagnostics = append(diagnostics, messages.Diagnostic{
-			Range:    newPointRange(line, 0),
+			Range:    messages.NewPointRange(line, 0),
 			Severity: messages.DiagnosticSeverityError,
 			Source:   ptr(config.ServerName),
 			Message:  err.Error(),
@@ -863,7 +863,7 @@ func yamlErrorToDiagnostic(yamlError yaml.Error, fileURI string) messages.Diagno
 	start := token.Position.Column - 1
 	end := start + len(token.Value)
 	diag := messages.Diagnostic{
-		Range: newLineRange(
+		Range: messages.NewLineRange(
 			// Shift the line number to the actual line in the file as the SDK
 			// operates on the single node's context.
 			// Subtract one to convert StartLine from 1-based to 0-based indexing.
@@ -887,7 +887,7 @@ func yamlErrorToDiagnostic(yamlError yaml.Error, fileURI string) messages.Diagno
 			{
 				Location: messages.Location{
 					URI:   fileURI,
-					Range: newPointRange(prevLine, prevCol),
+					Range: messages.NewPointRange(prevLine, prevCol),
 				},
 				Message: "duplicate key",
 			},
@@ -899,7 +899,7 @@ func yamlErrorToDiagnostic(yamlError yaml.Error, fileURI string) messages.Diagno
 func getRangeForNodePath(ctx context.Context, node *yamlast.Node, path string) messages.Range {
 	filteredNode := findNodeForPath(ctx, node.Node, path)
 	if filteredNode == nil {
-		return newPointRange(node.StartLine, 0)
+		return messages.NewPointRange(node.StartLine, 0)
 	}
 	return getRangeFromNode(filteredNode)
 }
@@ -939,54 +939,21 @@ func getRangeFromNode(node ast.Node) messages.Range {
 			//   period:
 			//     startTime: 2025-01-01T12:00:00+02:00
 			token := v.Key.GetToken()
-			return newLineRange(token.Position.Line, token.Position.Column-1, v.Start.Position.Column-1)
+			return messages.NewLineRange(token.Position.Line, token.Position.Column-1, v.Start.Position.Column-1)
 		} else {
 			// If the value is a simple type we highlight the value.
 			// Example:
 			//
 			//   name: foo
 			token := v.Value.GetToken()
-			return newLineRange(token.Position.Line, token.Position.Column-1, len(node.String()))
+			return messages.NewLineRange(token.Position.Line, token.Position.Column-1, len(node.String()))
 		}
 	case *ast.StringNode:
 		token := node.GetToken()
-		return newLineRange(token.Position.Line, token.Position.Column-1, token.Position.Column+len(v.Value)-1)
+		return messages.NewLineRange(token.Position.Line, token.Position.Column-1, token.Position.Column+len(v.Value)-1)
 	default:
 		token := node.GetToken()
-		return newLineRange(token.Position.Line, token.Position.IndentNum, token.Position.Column)
-	}
-}
-
-// newPointRange returns [messages.Range] with both start and end
-// set to the same line and character.
-func newPointRange(l, c int) messages.Range {
-	return newRange(l, c, l, c)
-}
-
-// newPointRange returns [messages.Range] with both start and end
-// set to the same line.
-func newLineRange(l, sc, ec int) messages.Range {
-	return newRange(l, sc, l, ec)
-}
-
-// Line numbers are 0-based in the LSP specification, but we operate on 1-based indexing,
-// so we need to subtract one.
-func newRange(sl, sc, el, ec int) messages.Range {
-	if sl != 0 {
-		sl--
-	}
-	if el != 0 {
-		el--
-	}
-	return messages.Range{
-		Start: messages.Position{
-			Line:      sl,
-			Character: sc,
-		},
-		End: messages.Position{
-			Line:      el,
-			Character: ec,
-		},
+		return messages.NewLineRange(token.Position.Line, token.Position.IndentNum, token.Position.Column)
 	}
 }
 

@@ -425,6 +425,30 @@ name: my-service
 				},
 			},
 		},
+		"simple list element": {
+			in: `- metadata`,
+			out: File{
+				Docs: []*Document{
+					{
+						Lines: []*Line{
+							{Path: "$[0]", GeneralizedPath: "$", indent: 2, Type: LineTypeList},
+						},
+					},
+				},
+			},
+		},
+		"array doc with colon in string": {
+			in: `- metadata "foo: bar"`,
+			out: File{
+				Docs: []*Document{
+					{
+						Lines: []*Line{
+							{Path: "$[0]", GeneralizedPath: "$", indent: 2, Type: LineTypeList},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tests {

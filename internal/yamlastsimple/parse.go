@@ -74,6 +74,12 @@ func (l *Line) HasMapValue() bool {
 	return l.IsType(LineTypeMapping) && l.valueColonIdx != -1 && l.valueColonIdx+2 < len(l.value)
 }
 
+// GetColonIndex returns the index of the colon in the line.
+// If colon is not present, it returns -1.
+func (l *Line) GetColonIndex() int {
+	return l.valueColonIdx
+}
+
 // GetKeyPos returns the start and end position of the key on the given line.
 // End position is exclusive, while start is inclusive.
 func (l *Line) GetKeyPos() (start, end int) {
