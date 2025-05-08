@@ -11,7 +11,7 @@ import (
 	"github.com/nobl9/nobl9-language-server/internal/logging"
 )
 
-func Test_logLevelFileFlag(t *testing.T) {
+func Test_parseLogLevel(t *testing.T) {
 	tests := []struct {
 		in  string
 		out slog.Level
@@ -29,7 +29,7 @@ func Test_logLevelFileFlag(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.in, func(t *testing.T) {
 			cmd := &Command{config: new(Config)}
-			err := cmd.parseLogLevelFlag(tc.in)
+			err := cmd.parseLogLevel(tc.in)
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
 				return
@@ -40,7 +40,16 @@ func Test_logLevelFileFlag(t *testing.T) {
 	}
 }
 
-func Test_parseFilePatternsFlag(t *testing.T) {
+func Test_parseStringWithEnvDefault(t *testing.T) {
+	t.Setenv("NOBL9_LANGUAGE_SERVER_LOG_LEVEL", "INFO")
+	cmd := &Command{config: new(Config)}
+	f := parseStringWithEnvDefault("LOG_LEVEL", cmd.parseLogLevel)
+	err := f(nil, nil, "foo")
+	assert.NoError(t, err)
+	assert.Equal(t, "INFO", cmd.config.LogLevel.String())
+}
+
+func Test_parseFilePatterns(t *testing.T) {
 	tests := []struct {
 		in  string
 		out []string
@@ -55,7 +64,7 @@ func Test_parseFilePatternsFlag(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.in, func(t *testing.T) {
 			cmd := &Command{config: new(Config)}
-			err := cmd.parseFilePatternsFlag(tc.in)
+			err := cmd.parseFilePatterns(tc.in)
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
 				return
