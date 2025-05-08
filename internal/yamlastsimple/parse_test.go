@@ -546,8 +546,10 @@ func TestLine_HasMapValue(t *testing.T) {
 		{"- metadata:\n  - name:", 1, false},
 	}
 	for _, tc := range tests {
-		file := ParseFile(tc.in)
-		assert.Equal(t, tc.expected, file.Docs[0].Lines[tc.line].HasMapValue())
+		t.Run(tc.in, func(t *testing.T) {
+			file := ParseFile(tc.in)
+			assert.Equal(t, tc.expected, file.Docs[0].Lines[tc.line].HasMapValue())
+		})
 	}
 }
 

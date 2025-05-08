@@ -190,7 +190,7 @@ func parseDocumentLines(lines []string) []*Line {
 		case line[0] == '-':
 			parsedLine.indent += 2
 			parsedLine.Type = LineTypeList
-			if parsedLine.valueColonIdx = strings.Index(line, ":"); parsedLine.valueColonIdx != -1 {
+			if parsedLine.valueColonIdx = getColonIndex(line); parsedLine.valueColonIdx != -1 {
 				parsedLine.Path = strings.TrimSpace(line[1:parsedLine.valueColonIdx])
 				parsedLine.addType(LineTypeMapping)
 			}
@@ -205,7 +205,7 @@ func parseDocumentLines(lines []string) []*Line {
 				parsedLine.Type = LineTypeUndefined
 				break
 			}
-			if parsedLine.valueColonIdx = strings.Index(line, ":"); parsedLine.valueColonIdx != -1 {
+			if parsedLine.valueColonIdx = getColonIndex(line); parsedLine.valueColonIdx != -1 {
 				parsedLine.Path = strings.TrimSpace(line[:parsedLine.valueColonIdx])
 				parsedLine.Type = LineTypeMapping
 			}
@@ -324,6 +324,25 @@ func getIndentLevel(s string) int {
 		ctr++
 	}
 	return ctr
+}
+
+func getColonIndex(s string) int {
+	keyStarted := false
+	for i, r := range s {
+		if i == 0 && r == '-' {
+			continue
+		}
+		isSpace := unicode.IsSpace(r)
+		switch {
+		case keyStarted && isSpace:
+			return -1
+		case !keyStarted && !isSpace:
+			keyStarted = true
+		case r == ':':
+			return i
+		}
+	}
+	return -1
 }
 
 // generalizePath generalizes the root path of the YAML document by:
