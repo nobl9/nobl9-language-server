@@ -449,6 +449,18 @@ name: my-service
 				},
 			},
 		},
+		"array doc with quoted colon in key": {
+			in: `- "metadata: bar": foo`,
+			out: File{
+				Docs: []*Document{
+					{
+						Lines: []*Line{
+							{Path: `$[0]."metadata: bar"`, GeneralizedPath: `$."metadata: bar"`, indent: 2, Type: LineTypeList | LineTypeMapping},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tests {

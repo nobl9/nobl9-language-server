@@ -326,19 +326,34 @@ func getIndentLevel(s string) int {
 	return ctr
 }
 
+// getColonIndex returns the index of the colon that separates a key from its value in a YAML mapping.
+// It handles quoted keys that may contain colons.
 func getColonIndex(s string) int {
 	keyStarted := false
+	inSingleQuotes := false
+	inDoubleQuotes := false
+
 	for i, r := range s {
 		if i == 0 && r == '-' {
 			continue
 		}
 		isSpace := unicode.IsSpace(r)
 		switch {
-		case keyStarted && isSpace:
-			return -1
+		case r == '"' && !inSingleQuotes:
+			inDoubleQuotes = !inDoubleQuotes
+			if !keyStarted {
+				keyStarted = true
+			}
+		case r == '\'' && !inDoubleQuotes:
+			inSingleQuotes = !inSingleQuotes
+			if !keyStarted {
+				keyStarted = true
+			}
+		case keyStarted && isSpace && !inSingleQuotes && !inDoubleQuotes:
+			return -1 // Space after key without a colon means it's not a mapping
 		case !keyStarted && !isSpace:
 			keyStarted = true
-		case r == ':':
+		case r == ':' && !inSingleQuotes && !inDoubleQuotes:
 			return i
 		}
 	}
