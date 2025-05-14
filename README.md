@@ -38,14 +38,11 @@ go install github.com/nobl9/nobl9-language-server/cmd/nobl9-language-server@late
 
 ## Integrations
 
-### Visual Studio Code
+### [Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=Nobl9.nobl9)
 
 Refer to the [extension documentation](https://github.com/nobl9/nobl9-vscode/) for more details.
 
-### Intellij Platform
-
-> [!WARNING]
-> Work in progress. The plugin is not yet available!
+### [Intellij Platform](https://plugins.jetbrains.com/plugin/27319-nobl9)
 
 Refer to the [plugin documentation](https://github.com/nobl9/nobl9-intellij-platform-plugin) for more details.
 
