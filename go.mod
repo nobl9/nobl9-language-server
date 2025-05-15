@@ -7,7 +7,7 @@ require (
 	github.com/goccy/go-yaml v1.17.1
 	github.com/nobl9/nobl9-go v0.102.1
 	github.com/pkg/errors v0.9.1
-	github.com/sourcegraph/jsonrpc2 v0.2.0
+	github.com/sourcegraph/jsonrpc2 v0.2.1
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v3 v3.3.3
 )
