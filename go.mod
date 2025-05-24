@@ -5,7 +5,7 @@ go 1.24
 require (
 	github.com/bmatcuk/doublestar/v4 v4.8.1
 	github.com/goccy/go-yaml v1.17.2-0.20250508142621-500180b7b722
-	github.com/nobl9/nobl9-go v0.105.0
+	github.com/nobl9/nobl9-go v0.106.0
 	github.com/pkg/errors v0.9.1
 	github.com/sourcegraph/jsonrpc2 v0.2.1
 	github.com/stretchr/testify v1.10.0
@@ -22,7 +22,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/nobl9/govy v0.17.0 // indirect
+	github.com/nobl9/govy v0.18.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/teambition/rrule-go v1.8.2 // indirect
 	golang.org/x/mod v0.24.0 // indirect
