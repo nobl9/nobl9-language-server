@@ -5,7 +5,7 @@ go 1.24
 require (
 	github.com/bmatcuk/doublestar/v4 v4.8.1
 	github.com/goccy/go-yaml v1.17.2-0.20250508142621-500180b7b722
-	github.com/nobl9/nobl9-go v0.109.1
+	github.com/nobl9/nobl9-go v0.109.2
 	github.com/pkg/errors v0.9.1
 	github.com/sourcegraph/jsonrpc2 v0.2.1
 	github.com/stretchr/testify v1.10.0
@@ -15,7 +15,7 @@ require (
 require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/MicahParks/jwkset v0.9.6 // indirect
-	github.com/MicahParks/keyfunc/v3 v3.3.11 // indirect
+	github.com/MicahParks/keyfunc/v3 v3.4.0 // indirect
 	github.com/aws/aws-sdk-go v1.55.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
