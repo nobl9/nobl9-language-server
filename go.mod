@@ -9,7 +9,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sourcegraph/jsonrpc2 v0.2.1
 	github.com/stretchr/testify v1.10.0
-	github.com/urfave/cli/v3 v3.3.3
+	github.com/urfave/cli/v3 v3.3.8
 )
 
 require (
