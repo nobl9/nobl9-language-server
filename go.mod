@@ -3,7 +3,7 @@ module github.com/nobl9/nobl9-language-server
 go 1.24
 
 require (
-	github.com/bmatcuk/doublestar/v4 v4.9.0
+	github.com/bmatcuk/doublestar/v4 v4.9.1
 	github.com/goccy/go-yaml v1.17.2-0.20250508142621-500180b7b722
 	github.com/nobl9/nobl9-go v0.111.0
 	github.com/pkg/errors v0.9.1
