@@ -20,9 +20,9 @@ type objectsRepo interface {
 	Delete(ctx context.Context, objects []manifest.Object) error
 }
 
-func NewHandler(files *files.FS, repo objectsRepo, notifier clientNotifier) *Handler {
+func NewHandler(fileStore *files.FS, repo objectsRepo, notifier clientNotifier) *Handler {
 	return &Handler{
-		files:       files,
+		files:       fileStore,
 		objectsRepo: repo,
 		notifier:    notifier,
 	}

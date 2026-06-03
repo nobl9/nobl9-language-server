@@ -18,9 +18,9 @@ type providerInterface interface {
 	) *messages.HoverResponse
 }
 
-func NewHandler(files *files.FS, provider providerInterface) *Handler {
+func NewHandler(fileStore *files.FS, provider providerInterface) *Handler {
 	return &Handler{
-		files:    files,
+		files:    fileStore,
 		provider: provider,
 	}
 }
