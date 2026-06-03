@@ -11,6 +11,8 @@ issues:
 
 linters:
   exclusions:
+    paths:
+      - node_modules/
     rules:
     - linters:
         - revive
@@ -97,6 +99,9 @@ linters:
     - whitespace
 
 formatters:
+  exclusions:
+    paths:
+      - node_modules/
   enable:
     - gofmt
     - goimports
