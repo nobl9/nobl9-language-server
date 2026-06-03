@@ -67,7 +67,7 @@ func markdownEscape(s string) string {
 const markdownSpecialCharacters = "\\`*_{}[]<>()#+-.!|"
 
 var markdownReplacer = func() *strings.Replacer {
-	var replacements []string
+	replacements := make([]string, 0, 2*len(markdownSpecialCharacters))
 	for _, c := range markdownSpecialCharacters {
 		replacements = append(replacements, string(c), `\`+string(c))
 	}

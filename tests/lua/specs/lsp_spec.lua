@@ -134,6 +134,10 @@ Version represents the specific version of the manifest.
 
     local diagnostics = vim.diagnostic.get(bufnr)
     assert(diagnostics and #diagnostics > 0, "Expected diagnostics, but got none")
+    for _, diagnostic in ipairs(diagnostics) do
+      diagnostic.namespace = nil
+      diagnostic._extmark_id = nil
+    end
     local expected = {
       {
         bufnr = bufnr,
@@ -142,7 +146,6 @@ Version represents the specific version of the manifest.
         end_lnum = 2,
         lnum = 2,
         message = "metadata.project: property is required but was empty",
-        namespace = 3,
         severity = 1,
         source = "nobl9-language-server",
         user_data = {

@@ -161,7 +161,7 @@ func (d Provider) checkUserGroupReferencedObjects(
 	object *files.ObjectNode,
 	group v1alphaUserGroup.UserGroup,
 ) []messages.Diagnostic {
-	var diagnostics []messages.Diagnostic
+	diagnostics := make([]messages.Diagnostic, 0, len(group.Spec.Members))
 	for i, member := range group.Spec.Members {
 		diagnostics = append(diagnostics, d.checkUserExistence(
 			ctx,

@@ -398,7 +398,7 @@ func TestLSP(t *testing.T) {
 			Response: TestCaseResponse{
 				ID: 11,
 				Result: func() []messages.CompletionItem {
-					var items []messages.CompletionItem
+					items := make([]messages.CompletionItem, 0, len(manifest.KindNames()))
 					for _, kind := range manifest.KindNames() {
 						items = append(items, messages.CompletionItem{
 							Label: kind,

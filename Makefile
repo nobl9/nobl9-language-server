@@ -18,7 +18,7 @@ LDFLAGS := -s -w \
 # renovate datasource=github-releases depName=securego/gosec
 GOSEC_VERSION := v2.24.7
 # renovate datasource=github-releases depName=golangci/golangci-lint
-GOLANGCI_LINT_VERSION := v1.64.8
+GOLANGCI_LINT_VERSION := v2.12.2
 # renovate datasource=go depName=golang.org/x/vuln/cmd/govulncheck
 GOVULNCHECK_VERSION := v1.1.4
 # renovate datasource=go depName=golang.org/x/tools/cmd/goimports
@@ -176,8 +176,7 @@ install/yarn:
 ## Install golangci-lint (https://golangci-lint.run).
 install/golangci-lint:
 	$(call _print_step,Installing golangci-lint)
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh |\
- 		sh -s -- -b $(BIN_DIR) $(GOLANGCI_LINT_VERSION)
+	$(call _install_go_binary,github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION))
 
 ## Install gosec (https://github.com/securego/gosec).
 install/gosec:

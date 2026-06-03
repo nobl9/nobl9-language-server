@@ -1,12 +1,17 @@
+version: "2"
+
 run:
   timeout: 5m
   modules-download-mode: readonly
-  skip-dirs-use-default: true
 
 issues:
+  exclude-dirs-use-default: true
   # Enable all checks (which was by default disabled e.g. comments).
   exclude-use-default: false
-  exclude-rules:
+
+linters:
+  exclusions:
+    rules:
     - linters:
         - revive
       text: exported (function|method|type) .*? should have comment or be unexported
@@ -22,46 +27,40 @@ issues:
     - linters:
         - revive
       text: "error-strings: error strings should not be capitalized or end with punctuation or a newline"
-  # Value 0 means show all.
-  max-issues-per-linter: 0
-  max-same-issues: 0
-
-linters-settings:
-  goimports:
-    # Put imports beginning with prefix after 3rd-party packages;
-    # it's a comma-separated list of prefixes.
-    local-prefixes: github.com/nobl9/nobl9-language-server
-  govet:
+  settings:
+    govet:
     # False positives and reporting on error shadowing (which is intended).
     # Quoting Rob Pike:
     #   The shadow code is marked experimental.
     #   It has too many false positives to be enabled by default, so this is not entirely unexpected,
     #   but don't expect a fix soon. The right way to detect shadowing without flow analysis is elusive.
     # Few years later (comment from 2015) and the Shadow Analyzer is still experimental...
-    check-shadowing: false
-  lll:
-    line-length: 120
-  gocritic:
-    enabled-tags:
-      - opinionated
-    disabled-checks:
-      - singleCaseSwitch
-      - unnamedResult
-      - ifElseChain
-  exhaustive:
+      check-shadowing: false
+    lll:
+      line-length: 120
+    gocritic:
+      enabled-tags:
+        - opinionated
+      disabled-checks:
+        - singleCaseSwitch
+        - unnamedResult
+        - ifElseChain
+    exhaustive:
     # In switch statement treat label default: as being exhaustive.
-    default-signifies-exhaustive: true
-  misspell:
-    locale: US
-  gocognit:
-    min-complexity: 30
-  revive:
-    rules:
-      - name: unused-parameter
-        disabled: true
+      default-signifies-exhaustive: true
+    misspell:
+      locale: US
+    gocognit:
+      min-complexity: 30
+    revive:
+      rules:
+        - name: unused-parameter
+          disabled: true
 
-linters:
-  disable-all: true
+  # Value 0 means show all.
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  default: none
   enable:
     # All linters from list https://golangci-lint.run/usage/linters/ are specified here and explicit enable/disable.
     - asciicheck
@@ -74,11 +73,8 @@ linters:
     - gocognit
     - gocritic
     - gocyclo
-    - gofmt
     - goheader
-    - goimports
     - goprintffuncname
-    - gosimple
     - govet
     - importas
     - ineffassign
@@ -94,9 +90,18 @@ linters:
     - sqlclosecheck
     - staticcheck
     - tparallel
-    - typecheck
     - unconvert
     - unparam
     - unused
     - wastedassign
     - whitespace
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      # Put imports beginning with prefix after 3rd-party packages;
+      # it's a comma-separated list of prefixes.
+      local-prefixes: github.com/nobl9/nobl9-language-server
