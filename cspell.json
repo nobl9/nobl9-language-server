@@ -44,7 +44,6 @@
     "goimports",
     "golangci",
     "gosec",
-    "govulncheck",
     "ldflags",
     "lnum",
     "lspconfig",
@@ -56,8 +55,6 @@
     "slos",
     "tpng",
     "usrmgmt",
-    "vuln",
-    "vulns",
     "wrapf"
   ]
 }
