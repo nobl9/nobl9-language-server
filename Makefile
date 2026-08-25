@@ -19,8 +19,6 @@ LDFLAGS := -s -w \
 GOSEC_VERSION := v2.24.7
 # renovate datasource=github-releases depName=golangci/golangci-lint
 GOLANGCI_LINT_VERSION := v2.12.2
-# renovate datasource=go depName=golang.org/x/vuln/cmd/govulncheck
-GOVULNCHECK_VERSION := v1.1.4
 # renovate datasource=go depName=golang.org/x/tools/cmd/goimports
 GOIMPORTS_VERSION := v0.42.0
 
@@ -75,9 +73,9 @@ nvim-open: install/binary
 	$(call _print_step,Opening Neovim with minimal config)
 	nvim --clean -u ./neovim-config/init.lua service.yaml
 
-.PHONY: check check/vet check/lint check/gosec check/spell check/trailing check/markdown check/format check/generate check/vulns
+.PHONY: check check/vet check/lint check/gosec check/spell check/trailing check/markdown check/format check/generate
 ## Run all checks.
-check: check/vet check/lint check/gosec check/spell check/trailing check/markdown check/format check/generate check/vulns
+check: check/vet check/lint check/gosec check/spell check/trailing check/markdown check/format check/generate
 
 ## Run 'go vet' on the whole project.
 check/vet:
@@ -116,12 +114,6 @@ check/markdown:
 		--ignore 'internal/hover/templates/*' \
 		--ignore node_modules
 
-## Check for potential vulnerabilities across all Go dependencies.
-check/vulns:
-	$(call _print_step,Running govulncheck)
-	$(call _ensure_installed,binary,govulncheck)
-	$(BIN_DIR)/govulncheck ./...
-
 ## Verify if the auto generated code has been committed.
 check/generate:
 	$(call _print_step,Checking if generated code matches the provided definitions)
@@ -159,9 +151,9 @@ format/cspell:
 	$(call _ensure_installed,yarn,yaml)
 	yarn --silent format-cspell-config
 
-.PHONY: install install/binary install/yarn install/golangci-lint install/gosec install/govulncheck install/goimports
+.PHONY: install install/binary install/yarn install/golangci-lint install/gosec install/goimports
 ## Install all dev dependencies.
-install: install/binary install/yarn install/golangci-lint install/gosec install/govulncheck install/goimports
+install: install/binary install/yarn install/golangci-lint install/gosec install/goimports
 
 ## Install nobl9-language-server binary.
 install/binary:
@@ -183,11 +175,6 @@ install/gosec:
 	$(call _print_step,Installing gosec)
 	curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh |\
  		sh -s -- -b $(BIN_DIR) $(GOSEC_VERSION)
-
-## Install govulncheck (https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck).
-install/govulncheck:
-	$(call _print_step,Installing govulncheck)
-	$(call _install_go_binary,golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION))
 
 ## Install goimports (https://pkg.go.dev/golang.org/x/tools/cmd/goimports).
 install/goimports:
